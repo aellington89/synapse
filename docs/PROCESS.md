@@ -56,10 +56,11 @@ lands, and list here the packages and groups that always wait for review.
 
 ## Repository setup
 
-The branch ruleset for `main` should require the status checks `Verify` and `Title and
-description`. It isn't in place yet: GitHub only allows rulesets, and **Allow auto-merge**, on a
-private repository with GitHub Pro (see Known gaps). Until then, the Dependabot merge job's
-`gh pr merge --auto --squash` merges as soon as `Verify` passes.
+The `main` ruleset requires a pull request, allows squash merges only, blocks force pushes and
+deletion, and requires the status checks `Verify` and `Title and description`. Repository
+admins can bypass it for emergencies. **Allow auto-merge** is on, so the Dependabot merge job's
+`gh pr merge --auto --squash` waits for both checks. The repository is public, with secret
+scanning and push protection on.
 
 Secrets: `DEV_PROCESS_SSH_KEY` holds the private half of the read-only `synapse-ci` deploy key
 on `dev_process`. `CLAUDE_CODE_OAUTH_TOKEN` comes from `/install-github-app`, as the shared setup
@@ -75,6 +76,3 @@ None yet.
 ## Known gaps
 
 - The stack isn't chosen, so there are no tests, formatter, or app commands yet.
-- No branch ruleset: the repository is private on GitHub Free, which doesn't allow rulesets
-  or auto-merge. Nothing enforces PRs or required checks on `main` until the repository is
-  public or on GitHub Pro.
