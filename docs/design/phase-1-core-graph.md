@@ -2,7 +2,7 @@
 
 | Field            | Value                                                                  |
 | ---------------- | ---------------------------------------------------------------------- |
-| Status           | In review                                                              |
+| Status           | Accepted                                                               |
 | Milestone        | Phase 1: Core graph                                                    |
 | Estimated effort | 7 weeks                                                                |
 | Depends on       | None. It's the first phase, and it follows the accepted research in #2 |

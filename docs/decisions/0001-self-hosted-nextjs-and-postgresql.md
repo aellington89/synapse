@@ -1,6 +1,6 @@
 # 0001. Build Synapse as a self-hosted Next.js and PostgreSQL app on the finance-stack pattern
 
-Date: 2026-11-22 · Status: Proposed · Issue: #2
+Date: 2026-11-22 · Status: Accepted · Issue: #2
 
 ## Context
 
