@@ -33,5 +33,5 @@ read these facts:
 | Next version      | `node scripts/dev-process/release.mjs next`                                                       |
 | Prepare a release | `node scripts/dev-process/release.mjs prepare`, then n/a: no version file until a stack is chosen |
 | User guide        | n/a: no user guide yet                                                                            |
-| Roadmap           | GitHub milestones named `Phase <N>: <theme>`; each phase's proposal is `docs/design/phase-<N>-<slug>.md` (Phase 1: `docs/design/phase-1-core-graph.md`) |
+| Roadmap           | Milestones `Phase <N>: <theme>` on GitHub, each planned in `docs/design/phase-<N>-<slug>.md`      |
 | GitHub project    | https://github.com/users/aellington89/projects/31                                                 |

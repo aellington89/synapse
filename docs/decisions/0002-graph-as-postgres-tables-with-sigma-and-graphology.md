@@ -29,7 +29,10 @@ graph database, was archived in October 2025. The research on #2 has the evidenc
   table and one review flow.
 - Very large graphs would need filtering on the server before rendering.
 - Hierarchical layouts are weaker in Sigma than in Cytoscape. Revisit this ADR if Phase 3 needs
-  them, or if Phase 1's Atlas performance gate (issue 1.9) fails.
+  them.
+- If Phase 1's Atlas performance gate (issue 1.10) fails, Synapse draws less rather than changing
+  renderer: it hides low-degree nodes and moments by default, sets label thresholds, and filters
+  on the server. Cytoscape's canvas renderer would be slower still.
 
 ## Alternatives considered
 
@@ -37,6 +40,7 @@ graph database, was archived in October 2025. The research on #2 has the evidenc
   store.
 - **Kùzu:** embedded, but archived in October 2025.
 - **Cytoscape.js 3.35:** richer layouts, including hierarchical ones, but its canvas renderer is
-  slower at this scale. It's the fallback if Sigma fails the performance gate.
+  slower at this scale. It's the fallback only if a hierarchical layout is needed, not for
+  speed.
 - **react-force-graph:** the quickest demo, but it gives little control over clusters and labels,
   and its algorithm support is weak.
