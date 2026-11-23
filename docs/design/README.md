@@ -5,3 +5,4 @@ Which artifact to write, and how, is in `~/.claude/dev_process/standards/designs
 
 | Doc | Status | Milestone | Issues |
 | --- | ------ | --------- | ------ |
+| [Phase 1: Core graph](phase-1-core-graph.md) | Accepted | Phase 1: Core graph | Filed once accepted |
