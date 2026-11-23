@@ -1,0 +1,15 @@
+# GitHub Actions only, until Synapse's stack is chosen: add an entry per package ecosystem then
+# (docs/PROCESS.md, Upgrades). The Triage workflow assigns each PR to the owner and asks for
+# their review; CI merges these once Verify passes.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    labels: [dependencies, "type: upgrade"]
+    commit-message:
+      prefix: Upgrade
+    groups:
+      actions:
+        patterns: ["*"]

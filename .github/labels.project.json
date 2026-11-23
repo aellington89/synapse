@@ -1,0 +1,22 @@
+[
+  {
+    "name": "area: ui",
+    "color": "bfd4f2",
+    "description": "The user interface: screens, components, and styling"
+  },
+  {
+    "name": "area: api",
+    "color": "bfd4f2",
+    "description": "The API: endpoints, request handling, and business logic"
+  },
+  {
+    "name": "area: database",
+    "color": "bfd4f2",
+    "description": "The database: schema, migrations, and queries"
+  },
+  {
+    "name": "area: infra",
+    "color": "bfd4f2",
+    "description": "Infrastructure: CI, deployment, hosting, and tooling"
+  }
+]
