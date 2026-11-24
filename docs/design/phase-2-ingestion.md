@@ -2,7 +2,7 @@
 
 | Field            | Value                                                                       |
 | ---------------- | --------------------------------------------------------------------------- |
-| Status           | Draft                                                                       |
+| Status           | Accepted                                                                    |
 | Milestone        | Phase 2: Ingestion                                                          |
 | Estimated effort | 5 weeks for P0 and P1, 7 with every P2                                      |
 | Depends on       | Phase 1, and the accepted research in #25                                   |
