@@ -109,7 +109,7 @@ finance-stack pins `container_name: postgres` and `pg-backup`
 | -------------------------- | ------------------- | ----------------------------------------------------------------------------- |
 | `postgres` (18.6)          | `synapse-postgres`  | `127.0.0.1:5434`                                                              |
 | `migrate` (one-shot)       | `synapse-migrate`   | None                                                                          |
-| `app`                      | `synapse-app`       | `3002`. It's `127.0.0.1:3002` until sign-in lands in 1.1.1 (§4). |
+| `app`                      | `synapse-app`       | `3002`. It's `127.0.0.1:3002` until sign-in lands in 1.1.1 (§4).              |
 | `pg-backup` (1.17)         | `synapse-pg-backup` | None                                                                          |
 
 `migrate` creates the roles and applies the Drizzle migrations, as finance-stack's does
@@ -282,11 +282,11 @@ tables and no DDL.
 | 1.18 | Release pipeline                  | The `v*` release workflow, which runs `release.mjs verify` first, then builds and publishes the images; an upgrade path that takes a pre-upgrade dump (1.17) before `migrate` runs; the `Migration:` marker on changelog entries, with a gate copied from finance-stack's `app/scripts/check-changelog.ts` and run by the release workflow, as finance-stack's `release.yml:44` does; the marker recorded in `docs/PROCESS.md` as a project addition to the shared process; release QA (§8) and the release section in `docs/PROCESS.md`; and the Prepare a release fact in `CLAUDE.md`.                                                                                                     | infra    | P0       | S    | 1   | 1.1, 1.1.1, 1.17                 |
 | 1.19 | Home stats strip                  | A strip on Atlas with counts by medium, the titles in progress, and the last five consumptions.                                                                                                                                                                                                                                                                                                                                                 | ui       | P2       | S    | 1   | 1.8, 1.11                        |
 
-1.1 and 1.2 land first, and everything else depends on them. 1.1.1 can land any time after 1.1,
-and 1.18 waits for it, so no release is cut without sign-in. After 1.3, issues 1.4 and 1.6 to
-1.9 don't depend on one another and can go in any order. 1.10, 1.16, 1.17, and 1.18 can start as
-soon as their dependencies merge. Every issue leaves `main` releasable, because each adds its own
-navigation entry (§4).
+1.1 and 1.2 land first: everything else depends on 1.1, and most of it on 1.2. 1.1.1 can land
+any time after 1.1, and 1.18 waits for it, so no release is cut without sign-in. After 1.3,
+issues 1.4 and 1.6 to 1.9 don't depend on one another and can go in any order. 1.10, 1.16, 1.17,
+and 1.18 can start as soon as their dependencies merge. Every issue leaves `main` releasable,
+because each adds its own navigation entry (§4).
 
 That's 20 issues and 23 PRs. Ten M issues and ten S issues come to about 40 working days at
 most, or about eight weeks. That's four weeks more than the research's estimate. Music search,
