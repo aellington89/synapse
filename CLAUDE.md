@@ -15,7 +15,8 @@ Layout of `app/`, the only Node package (run npm commands there, or with `npm --
 - `app/`: routes (App Router). `app/api/health/route.ts` is the public liveness check.
 - `components/`: the app's components. `components/ui/` holds shadcn's copied components:
   add one with `npx shadcn add <name>`, then format it. If it imports `cn` from the `cn`
-  package, import it from `@/lib/utils` instead (ADR 0003 keeps finance-stack's `cn`).
+  package, import it from `@/lib/utils` instead. That's finance-stack's helper on `clsx` and
+  `tailwind-merge`, the packages #4's spec lists, so components carry over (ADR 0003).
 - `lib/`: shared code (`lib/utils.ts` has `cn`).
 - `tests/unit/`: Vitest, `*.test.ts` in node and `*.test.tsx` in jsdom; `tests/integration/`
   (Postgres) starts with #4's part 3. `e2e/`: Playwright, against the production build on

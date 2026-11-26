@@ -19,7 +19,7 @@ None yet.
 
 ## Code review additions
 
-None yet. Add the stack's own checks here once it's chosen.
+None yet.
 
 ## Testing
 
