@@ -7,6 +7,6 @@ describe("GET /api/health", () => {
     const response = await GET();
 
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ status: "broken" });
+    expect(await response.json()).toEqual({ status: "ok" });
   });
 });
