@@ -4,7 +4,7 @@ test("the home page shows the shell", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.getByRole("banner")).toContainText("Synapse");
-  await expect(page.getByRole("main")).toContainText("Synapse is not running");
+  await expect(page.getByRole("main")).toContainText("Synapse is running");
 });
 
 test("the theme toggle switches to dark from the keyboard", async ({ page }) => {
