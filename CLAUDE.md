@@ -4,14 +4,40 @@ Guidance for Claude Code when working in this repository.
 
 ## Project
 
-Synapse is a new project. Its stack and architecture aren't chosen yet: the repository holds
-only the dev process so far. When the stack is chosen, add its commands to the Dev process table
-below, its architecture and conventions here (or run `/init`), and its test levels to
-`docs/PROCESS.md`.
+Synapse is a self-hosted, single-user web app for the films, series, games, books, and albums
+you've lived with, connected as a graph (`docs/design/phase-1-core-graph.md`). It follows the
+finance-stack pattern (ADR 0001): Next.js 16 (App Router, TypeScript, Tailwind 4) with React 19,
+and shadcn components on Base UI (ADR 0003). PostgreSQL, Drizzle, and Docker Compose arrive with
+#4's part 3, and sign-in with #44.
+
+Layout of `app/`, the only Node package (run npm commands there, or with `npm --prefix app`):
+
+- `app/`: routes (App Router). `app/api/health/route.ts` is the public liveness check.
+- `components/`: the app's components. `components/ui/` holds shadcn's copied components:
+  add one with `npx shadcn add <name>`, then format it.
+- `lib/`: shared code (`lib/utils.ts` has `cn`).
+- `tests/unit/`: Vitest, `*.test.ts` in node and `*.test.tsx` in jsdom; `tests/integration/`
+  (Postgres) starts with #4's part 3. `e2e/`: Playwright, against the production build on
+  `E2E_PORT` (default 3102).
+
+Conventions:
+
+- Next.js 16 differs from older versions: read the guide in `app/node_modules/next/dist/docs/`
+  before using an API you're unsure of, and heed deprecation notices.
+- Node 26, in CI and (from part 3) the images. TypeScript is held on `~6.0` and ESLint on `^9`,
+  for the reasons in `app/package.json`'s `//typescript` and `//eslint` notes.
+- Ports: 3002 for `npm run dev`, `npm start`, and the app container; 3102 for the end-to-end
+  suite.
 
 ## Commands
 
-- **Verify:** `node scripts/dev-process/check-process.mjs` (the only gate until there's code).
+- **Verify:** `node scripts/dev-process/check-process.mjs && npm --prefix app run verify`
+  (Prettier, ESLint, `tsc`, and Vitest).
+- **Format:** `npm --prefix app run format`.
+- **Unit and component tests:** `npm --prefix app run test:unit`.
+- **End-to-end tests:** `npm --prefix app run test:e2e` (builds first; the first run needs
+  `npx playwright install chromium` in `app/`).
+- **Dev server:** `npm --prefix app run dev`, on `http://localhost:3002`.
 
 ## Dev process
 
@@ -25,11 +51,11 @@ read these facts:
 | Fact              | Value                                                                                             |
 | ----------------- | ------------------------------------------------------------------------------------------------- |
 | Default branch    | `main`                                                                                            |
-| Verify            | `node scripts/dev-process/check-process.mjs`                                                      |
-| Unit tests        | n/a: no code or stack yet                                                                         |
-| End-to-end tests  | n/a: no code or stack yet                                                                         |
-| Run the app       | n/a: no code or stack yet                                                                         |
-| Format            | n/a: no formatter chosen yet                                                                      |
+| Verify            | `node scripts/dev-process/check-process.mjs && npm --prefix app run verify`                       |
+| Unit tests        | `npm --prefix app run test:unit`                                                                  |
+| End-to-end tests  | `npm --prefix app run test:e2e`                                                                   |
+| Run the app       | n/a: until #4's part 3 adds Compose (`npm --prefix app run dev` serves the shell)                 |
+| Format            | `npm --prefix app run format`                                                                     |
 | Next version      | `node scripts/dev-process/release.mjs next`                                                       |
 | Prepare a release | `node scripts/dev-process/release.mjs prepare`, then n/a: no version file until a stack is chosen |
 | User guide        | n/a: no user guide yet                                                                            |

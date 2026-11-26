@@ -23,15 +23,19 @@ None yet. Add the stack's own checks here once it's chosen.
 
 ## Testing
 
-The stack isn't chosen yet, so only the process check runs. Fill in each level when it is.
+Every level below runs in the CI `Verify` job, on Node 26, each check as its own step with no
+`continue-on-error`: `check-process.mjs`, then in `app/` `npm ci`, `format:check`, `lint`,
+`typecheck`, `npm test` (every Vitest project), the Playwright browser install, and `test:e2e`.
+Locally, the Verify fact runs the static checks and Vitest, and the End-to-end tests fact runs
+Playwright.
 
-| Level              | Tool                                         | Where it runs                    |
-| ------------------ | -------------------------------------------- | -------------------------------- |
-| Static             | `node scripts/dev-process/check-process.mjs` | Locally, and the CI `Verify` job |
-| Unit and component | n/a: no code yet                             | n/a                              |
-| Integration        | n/a: no code yet                             | n/a                              |
-| End to end         | n/a: no code yet                             | n/a                              |
-| Release QA         | n/a: nothing is released yet                 | Before publishing                |
+| Level              | Tool                                                                                                     | Where it runs                    |
+| ------------------ | -------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| Static             | `check-process.mjs`, then in `app/`: Prettier (`format:check`), ESLint (`lint`), `tsc` (`typecheck`)     | Locally, and the CI `Verify` job |
+| Unit and component | Vitest: the `unit` project (`tests/unit/**/*.test.ts`, node) and `jsdom` (`tests/unit/**/*.test.tsx`)    | Locally, and the CI `Verify` job |
+| Integration        | Vitest's `integration` project (`tests/integration/**/*.test.ts`), empty until #4's part 3 adds Postgres | Locally, and the CI `Verify` job |
+| End to end         | Playwright (`e2e/`), Chromium, against `next build && next start` on `E2E_PORT` (default 3102)           | Locally, and the CI `Verify` job |
+| Release QA         | n/a: nothing is released yet                                                                             | Before publishing                |
 
 ## Release
 
@@ -47,12 +51,12 @@ lands, and list here the packages and groups that always wait for review.
 
 ## Automation
 
-| Automation                    | Trigger                                          | Lives in                   |
-| ----------------------------- | ------------------------------------------------ | -------------------------- |
-| CI: `Verify`                  | Every pull request, and every push to `main`     | `.github/workflows/ci.yml` |
-| CI: `Merge Dependabot update` | A Dependabot PR for GitHub Actions, after Verify | `.github/workflows/ci.yml` |
-| Dependabot                    | Monthly, GitHub Actions                          | `.github/dependabot.yml`   |
-| Shared workflows (synced)     | See `.dev-process.json`                          | `.github/workflows/`       |
+| Automation                    | Trigger                                                                    | Lives in                   |
+| ----------------------------- | -------------------------------------------------------------------------- | -------------------------- |
+| CI: `Verify`                  | Every pull request, and every push to `main` (its steps are under Testing) | `.github/workflows/ci.yml` |
+| CI: `Merge Dependabot update` | A Dependabot PR for GitHub Actions, after Verify                           | `.github/workflows/ci.yml` |
+| Dependabot                    | Monthly, GitHub Actions                                                    | `.github/dependabot.yml`   |
+| Shared workflows (synced)     | See `.dev-process.json`                                                    | `.github/workflows/`       |
 
 ## Repository setup
 
@@ -75,4 +79,5 @@ None yet.
 
 ## Known gaps
 
-- The stack isn't chosen, so there are no tests, formatter, or app commands yet.
+- The dependency audit arrives with #4's part 2, and Postgres, the integration tests, and a way
+  to run the whole app (Compose) with its part 3.
