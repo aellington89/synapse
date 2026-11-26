@@ -46,8 +46,8 @@ and release QA here.
 ## Upgrades
 
 Only GitHub Actions are tracked so far (`.github/dependabot.yml`), monthly, and their updates
-merge automatically once CI passes. Add an entry for each package ecosystem when the stack
-lands, and list here the packages and groups that always wait for review.
+merge automatically once CI passes. npm (`app/`) joins with #4's part 2, with the packages and
+groups that always wait for review listed here.
 
 ## Automation
 

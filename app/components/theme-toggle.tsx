@@ -28,7 +28,8 @@ export function ThemeToggle() {
     () => true,
     () => false,
   );
-  const current: Theme = mounted && theme && theme in NEXT_THEME ? (theme as Theme) : "system";
+  const current: Theme =
+    mounted && theme && Object.hasOwn(NEXT_THEME, theme) ? (theme as Theme) : "system";
   const Icon = ICONS[current];
 
   return (

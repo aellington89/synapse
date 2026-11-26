@@ -10,9 +10,9 @@ test("the home page shows the shell", async ({ page }) => {
 test("the theme toggle switches to dark from the keyboard", async ({ page }) => {
   await page.goto("/");
 
-  const toggle = page.getByRole("button", { name: "Theme: system" });
-  await toggle.focus();
-  await expect(toggle).toBeFocused();
+  // The toggle is the page's only focusable element, so the first Tab reaches it.
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Theme: system" })).toBeFocused();
 
   await page.keyboard.press("Enter");
   await expect(page.getByRole("button", { name: "Theme: light" })).toBeVisible();
