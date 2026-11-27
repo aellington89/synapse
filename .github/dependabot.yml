@@ -1,6 +1,6 @@
-# GitHub Actions only, until Synapse's stack is chosen: add an entry per package ecosystem then
-# (docs/PROCESS.md, Upgrades). The Triage workflow assigns each PR to the owner and asks for
-# their review; CI merges these once Verify passes.
+# Dependabot (docs/PROCESS.md, Upgrades). The Triage workflow assigns each PR to the owner and asks
+# for their review. CI merges GitHub Actions updates once Verify passes; npm updates wait for that
+# review.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -13,3 +13,39 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+
+  # The app, the repository's only Node package.
+  - package-ecosystem: npm
+    directory: /app
+    schedule:
+      interval: weekly
+    labels: [dependencies, "type: upgrade"]
+    commit-message:
+      prefix: Upgrade
+    # A routine week arrives as two PRs, dev and runtime. Each major gets a PR of its own.
+    groups:
+      dev-dependencies:
+        dependency-type: development
+        update-types: [minor, patch]
+      production-dependencies:
+        dependency-type: production
+        update-types: [minor, patch]
+    # Each of these majors would only fail, so they're ignored rather than raised every week as
+    # the same unmergeable PR. Minor and patch updates still arrive.
+    ignore:
+      # TypeScript 7 is the native port, which doesn't expose the compiler API `next build`
+      # drives, and typescript-eslint's peer range ends below 6.1. The `//typescript` note in
+      # app/package.json is the other half, and says when to lift both. A 6.1 arrives as a minor,
+      # moving `~6.0` to `~6.1`: check typescript-eslint's peer range before merging it.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      # ESLint 10 removed the rule-context accessors that the plugins eslint-config-next vendors
+      # still call (eslint-plugin-react 7.37.5 peers at ^9.7), so it crashes as it loads the
+      # rules. The `//eslint` note in app/package.json says when to lift it.
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      # @types/node's major moves with the Node major in CI and the images, by hand and in the
+      # same change. Ahead of the runtime, `tsc` admits APIs that don't exist; behind it, it
+      # rejects ones that do. This rule doesn't lift.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
