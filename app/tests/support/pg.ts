@@ -2,14 +2,15 @@ import { Client, type ClientConfig } from "pg";
 
 type Env = Record<string, string | undefined>;
 
-// Every field is spelled out, so nothing falls back to pg's own reading of PG* in process.env:
-// the guards are handed an env on purpose, and the tests hand them one that differs from it.
+// Every field comes from the env passed in, not process.env: the guards are handed an env on
+// purpose, and the tests hand them one that differs from it. A field the env lacks is left unset,
+// and pg then fills it from process.env's PG* or its own default.
 
 /** The superuser, from PGHOST, PGPORT, PGUSER, and PGPASSWORD. */
 export function superuser(env: Env, database: string): ClientConfig {
   return {
     host: env.PGHOST,
-    port: Number(env.PGPORT),
+    port: env.PGPORT ? Number(env.PGPORT) : undefined,
     user: env.PGUSER,
     password: env.PGPASSWORD,
     database,

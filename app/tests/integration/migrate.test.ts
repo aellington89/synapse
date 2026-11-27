@@ -101,6 +101,21 @@ describe("migrate.sh", { timeout: 120_000 }, () => {
     expect(await connectAsApp(process.env.SYNAPSE_APP_DB_PASSWORD)).toBe("ok");
   });
 
+  it("names the step that failed", () => {
+    const run = migrate({ PGPORT: "1" });
+
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toContain(`migrate.sh: failed while creating the database ${DATABASE}.`);
+  });
+
+  it.each(["postgres", "template1"])("refuses to touch %s", (name) => {
+    const run = migrate({ SYNAPSE_DATABASES: name });
+
+    expect(run.status).not.toBe(0);
+    expect(run.stderr).toContain(`"${name}" is one of Postgres's own databases`);
+    expect(run.stdout).not.toContain(">>>");
+  });
+
   // Only on CI's disposable cluster: the role is cluster-wide, so a new password here would lock
   // a running synapse-app out of new connections until its next `up`.
   it.runIf(process.env.CI)("applies a new SYNAPSE_APP_DB_PASSWORD on the next run", async () => {

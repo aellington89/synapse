@@ -16,12 +16,15 @@
 # The grants name tables, so they run after the migrations that create them.
 #
 # It stops before connecting if a variable is missing, if a password holds a character that a
-# connection URL would need escaped, or if a database name isn't a plain lowercase identifier.
-# Otherwise it names the step that failed.
-set -euo pipefail
+# connection URL would need escaped, or if a database name isn't a plain lowercase identifier or
+# is one of Postgres's own. Otherwise it names the step that failed.
+# -E: the ERR trap below also fires for a command that fails inside run_psql.
+set -Eeuo pipefail
 
 APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SQL_DIR="${APP_DIR}/scripts/sql"
+# drizzle-kit reads drizzle.config.ts from the working directory.
+cd "${APP_DIR}"
 
 fail() {
   echo "migrate.sh: $*" >&2
@@ -43,6 +46,9 @@ read -r -a DATABASES <<<"${SYNAPSE_DATABASES:-synapse synapse_test}"
 for db in "${DATABASES[@]}"; do
   [[ "${db}" =~ ^[a-z_][a-z0-9_]*$ ]] ||
     fail "SYNAPSE_DATABASES: \"${db}\" isn't a lowercase name of letters, digits, and underscores."
+  # The grants revoke PUBLIC's CONNECT, which every role needs on the maintenance databases.
+  [[ "${db}" != postgres && "${db}" != template* ]] ||
+    fail "SYNAPSE_DATABASES: \"${db}\" is one of Postgres's own databases."
 done
 
 step="starting"
@@ -60,16 +66,14 @@ done
 
 step="creating the role synapse_app"
 echo ">>> Creating synapse_app if it's missing, and setting its attributes and password"
-run_psql -d postgres -v app_password="${SYNAPSE_APP_DB_PASSWORD}" -f "${SQL_DIR}/02-roles.sql"
+# The SQL reads the password from the environment, so it's never on psql's command line.
+run_psql -d postgres -f "${SQL_DIR}/02-roles.sql"
 
 for db in "${DATABASES[@]}"; do
   step="migrating ${db}"
   echo ">>> Migrating ${db}"
-  (
-    cd "${APP_DIR}"
-    DATABASE_URL="postgresql://${PGUSER}:${PGPASSWORD}@${PGHOST}:${PGPORT}/${db}" \
-      node_modules/.bin/drizzle-kit migrate
-  )
+  DATABASE_URL="postgresql://${PGUSER}:${PGPASSWORD}@${PGHOST}:${PGPORT}/${db}" \
+    node_modules/.bin/drizzle-kit migrate
   echo # drizzle-kit ends its last line without a newline.
 
   step="applying the grants to ${db}"

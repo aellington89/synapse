@@ -1,11 +1,13 @@
-# The build context is app/. Nothing below is needed in an image.
+# The build context is app/. Nothing below is needed in an image, except where it says.
 node_modules
 .next
 # Secrets: Next.js copies any .env* it finds into its build output, so none may reach the context.
 .env*
-# Tests and their output.
+# Tests and their output. tests/support stays: scripts/migrate-test.ts imports it, and `next
+# build` type-checks every file tsconfig.json includes.
 e2e
 tests
+!tests/support
 playwright.config.ts
 playwright-report
 test-results
