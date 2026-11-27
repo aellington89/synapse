@@ -35,10 +35,10 @@
     "Held on 6.0.x, as finance-stack holds it (finance-stack/app/package.json).",
     "Floor: the @types packages declare a minimum compiler of 5.6, which 6.0 clears.",
     "Ceiling: `~6.0` rather than `^6.0`, because typescript-eslint 8.74 (through",
-    "eslint-config-next) declares a peer of `>=4.8.4 <6.1.0`. TypeScript 7 is the",
-    "native port and doesn't expose the compiler API `next build` drives, so",
-    ".github/dependabot.yml ignores the major. Re-derive both ends when a type",
-    "package moves or typescript-eslint widens its peer range."
+    "eslint-config-next) declares a peer of `>=4.8.4 <6.1.0`. That also keeps out",
+    "TypeScript 7, the native port, so .github/dependabot.yml ignores the major",
+    "until typescript-eslint admits it. Re-derive both ends when a type package",
+    "moves or typescript-eslint widens its peer range."
   ],
   "//eslint": [
     "Held on 9.x, as finance-stack holds it. The caret is load-bearing: ESLint 10",

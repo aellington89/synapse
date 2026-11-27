@@ -51,15 +51,19 @@ Dependabot (`.github/dependabot.yml`) tracks two ecosystems:
 
 - **GitHub Actions**, monthly, in one group. Their updates merge automatically once CI passes.
 - **npm** (`app/`), weekly. Minor and patch updates arrive as two groups, dev and runtime
-  dependencies, and each major as a PR of its own. Every npm update waits for review: the
+  dependencies, and each major as a PR of its own. Dependabot counts a 0.x minor as a minor,
+  though the caret treats it as breaking, so a `next-themes` or `class-variance-authority`
+  release outside its range arrives in the runtime group. Every npm update waits for review: the
   `Merge Dependabot update` job merges GitHub Actions updates only. The `typescript`, `eslint`,
   and `@types/node` majors are ignored. The first two are held for the reasons in the
   `//typescript` and `//eslint` notes in `app/package.json`. `@types/node` moves with the Node
   major in CI and the images, by hand, in the same change.
 
 The `Dependency audit (runtime)` step in `Verify` (`npm run check:audit`) fails on any HIGH or
-CRITICAL advisory in the runtime tree, `npm audit --omit=dev`. Dev dependencies don't ship in the
-app, so they aren't audited. Fix an advisory in this order:
+CRITICAL advisory in the runtime tree, `npm audit --omit=dev`. That leaves out dev dependencies,
+except one that a runtime package also names as an optional peer: npm keeps those, so
+`@playwright/test` (an optional peer of `next`) and `@types/react` are audited, with what they
+bring in. Fix an advisory in this order:
 
 1. Upgrade the package, or the dependency that brings it in, to a fixed version.
 2. When no upgrade reaches one, add an `overrides` entry in `app/package.json` that lifts the
@@ -100,3 +104,5 @@ None yet.
 
 - Postgres, the integration tests, and a way to run the whole app (Compose) arrive with #4's
   part 3.
+- Dependabot has no `docker` or `docker-compose` entry yet. Add them for `app/Dockerfile` (`/app`)
+  and `docker-compose.yml` (`/`) when #4's part 3 adds those files.

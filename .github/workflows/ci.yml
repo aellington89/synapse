@@ -1,9 +1,9 @@
 name: CI
 
-# Verify (the verify command, the dependency audit, then the end-to-end tests) on every pull request
-# and every push to main, then the merge of low-risk Dependabot updates (GitHub Actions) once it
-# passes. npm updates wait for review (docs/PROCESS.md, Upgrades). The ruleset requires the job
-# names; keep them.
+# Verify (the verify command's checks and the dependency audit, then the end-to-end tests) on every
+# pull request and every push to main, then the merge of low-risk Dependabot updates (GitHub
+# Actions) once it passes. npm updates wait for review (docs/PROCESS.md, Upgrades). The ruleset
+# requires the job names; keep them.
 
 on:
   pull_request:
