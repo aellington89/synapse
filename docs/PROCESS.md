@@ -29,6 +29,9 @@ Every level below runs in the CI `Verify` job, on Node 26, each check as its own
 install, and `test:e2e`.
 Locally, the Verify fact runs the static checks and Vitest, and the End-to-end tests fact runs
 Playwright.
+`check-docs.mjs` checks mentions of `~/.claude/dev_process/` and `app/node_modules/` only where
+they exist, so CI (which has no dev_process clone and runs it before `npm ci`) skips them and a
+local run covers them.
 
 | Level              | Tool                                                                                                                   | Where it runs                    |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
