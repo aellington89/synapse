@@ -64,16 +64,38 @@ function audit(): string {
   }
 }
 
-const report = runGate({
-  auditOutput: audit(),
-  allowlist: readFileSync(join(APP, ".audit-allowlist"), "utf8"),
-  today: new Date().toISOString().slice(0, 10),
-});
+/** The allowlist's text, or undefined when the file is missing. */
+function readAllowlist(): string | undefined {
+  try {
+    return readFileSync(join(APP, ".audit-allowlist"), "utf8");
+  } catch (error) {
+    if ((error as { code?: unknown }).code === "ENOENT") return undefined;
+    throw error;
+  }
+}
 
-// Notes carry advisory titles from npm, so they're annotations too: a line that doesn't start with
-// `::` can still run a command the runner finds in it.
-for (const note of report.notes) console.log(`::notice::${escape(note)}`);
-for (const warning of report.warnings) console.log(`::warning::${escape(warning)}`);
-for (const error of report.errors) console.log(`::error::${escape(error)}`);
-console.log(report.summary);
-process.exitCode = report.ok ? 0 : 1;
+const allowlist = readAllowlist();
+
+if (allowlist === undefined) {
+  // Missing isn't read as empty: the gate would then fail every advisory its entries allowed, with
+  // no word of why. So it fails here, before running npm, and says what to restore.
+  console.log(
+    "::error::app/.audit-allowlist is missing. Restore it, with its header if it has no entries " +
+      "(git restore app/.audit-allowlist), and run the audit again.",
+  );
+  process.exitCode = 1;
+} else {
+  const report = runGate({
+    auditOutput: audit(),
+    allowlist,
+    today: new Date().toISOString().slice(0, 10),
+  });
+
+  // Notes carry advisory titles from npm, so they're annotations too: a line that doesn't start
+  // with `::` can still run a command the runner finds in it.
+  for (const note of report.notes) console.log(`::notice::${escape(note)}`);
+  for (const warning of report.warnings) console.log(`::warning::${escape(warning)}`);
+  for (const error of report.errors) console.log(`::error::${escape(error)}`);
+  console.log(report.summary);
+  process.exitCode = report.ok ? 0 : 1;
+}

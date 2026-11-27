@@ -15,7 +15,16 @@
 // - npm-audit-no-lockfile.json: `npm audit --omit=dev --json` in a project with no lockfile.
 
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
 
@@ -415,6 +424,7 @@ describe("check-audit.ts", () => {
     report: string,
     npmStatus: number,
     path = `${dir}${delimiter}${process.env.PATH}`,
+    app = APP,
   ) => {
     const reportFile = join(dir, "report.json");
     const argsFile = join(dir, "args");
@@ -423,9 +433,9 @@ describe("check-audit.ts", () => {
 
     const result = spawnSync(
       process.execPath,
-      [join(APP, "node_modules/tsx/dist/cli.mjs"), "scripts/check-audit.ts"],
+      [join(APP, "node_modules/tsx/dist/cli.mjs"), join(app, "scripts/check-audit.ts")],
       {
-        cwd: APP,
+        cwd: app,
         encoding: "utf8",
         env: {
           ...process.env,
@@ -482,5 +492,20 @@ describe("check-audit.ts", () => {
 
     expect(status).toBe(1);
     expect(stdout).toMatch(/^::error::npm audit didn't finish: .*ENOENT/m);
+  });
+
+  it("fails with an annotation naming the allowlist when it's missing, without running npm", () => {
+    // The two scripts, copied to an app/ with no .audit-allowlist beside them.
+    const app = join(dir, "no-allowlist");
+    mkdirSync(join(app, "scripts"), { recursive: true });
+    for (const script of ["check-audit.ts", "audit-allowlist.ts"]) {
+      copyFileSync(join(APP, "scripts", script), join(app, "scripts", script));
+    }
+
+    const { status, stdout, args } = run(CLEAN, 0, undefined, app);
+
+    expect(status).toBe(1);
+    expect(stdout).toMatch(/^::error::app\/\.audit-allowlist is missing/m);
+    expect(args).toEqual([]);
   });
 });
