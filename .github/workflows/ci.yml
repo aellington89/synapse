@@ -1,9 +1,9 @@
 name: CI
 
-# Verify (the verify command's checks and the dependency audit, then the end-to-end tests) on every
-# pull request and every push to main, then the merge of low-risk Dependabot updates (GitHub
-# Actions) once it passes. npm updates wait for review (docs/PROCESS.md, Upgrades). The ruleset
-# requires the job names; keep them.
+# Verify (the verify command's checks, the dependency audit, migrate.sh against a Postgres
+# service, then the end-to-end tests) on every pull request and every push to main, then the merge
+# of low-risk Dependabot updates (GitHub Actions) once it passes. npm and Docker updates wait for
+# review (docs/PROCESS.md, Upgrades). The ruleset requires the job names; keep them.
 
 on:
   pull_request:
@@ -17,6 +17,33 @@ jobs:
   verify:
     name: Verify
     runs-on: ubuntu-latest
+    # A bare cluster for migrate.sh and the integration tests. It's disposable, so the migrate
+    # test's password-rotation case runs here only. The tag matches docker-compose.yml's, and
+    # Dependabot doesn't read workflow services: bump the two together, by hand.
+    services:
+      postgres:
+        image: postgres:18.6
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-superuser-password
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    # What app/.env.local holds locally, for CI's cluster. Not secrets: nothing outside this job
+    # can reach it.
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: ci-superuser-password
+      PGDATABASE: synapse_test
+      SYNAPSE_APP_DB_PASSWORD: ci-app-password
+      DATABASE_URL: postgresql://synapse_app:ci-app-password@localhost:5432/synapse_test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -43,7 +70,12 @@ jobs:
       - name: Dependency audit (runtime)
         run: npm run check:audit
         working-directory: app
-      - name: Unit and component tests (Vitest)
+      # Both databases, as the migrate service does on an empty volume, so every run proves a
+      # first install. The tests then migrate synapse_test again.
+      - name: Migrate (migrate.sh)
+        run: bash scripts/migrate.sh
+        working-directory: app
+      - name: Tests (Vitest, unit, component, and integration)
         run: npm test
         working-directory: app
       - name: Install the Playwright browser
@@ -73,7 +105,7 @@ jobs:
     steps:
       - id: metadata
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
-      # GitHub Actions only: npm updates wait for the owner's review.
+      # GitHub Actions only: npm and Docker updates wait for the owner's review.
       - if: steps.metadata.outputs.package-ecosystem == 'github_actions'
         run: gh pr merge --auto --squash "$PR_URL"
         env:
