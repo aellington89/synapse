@@ -1,6 +1,6 @@
 # Dependabot (docs/PROCESS.md, Upgrades). The Triage workflow assigns each PR to the owner and asks
-# for their review. CI merges GitHub Actions updates once Verify passes; npm updates wait for that
-# review.
+# for their review. CI merges GitHub Actions updates once Verify passes; npm and Docker updates
+# wait for that review.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -55,3 +55,23 @@ updates:
       # rejects ones that do. This rule doesn't lift.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+
+  # The images' base tags: node in app/Dockerfile, and postgres in docker-compose.yml. Each waits
+  # for review, like npm. A postgres bump also needs the same tag in ci.yml's Postgres service,
+  # which Dependabot doesn't read, in the same PR. A node major moves with @types/node and CI's
+  # node-version, by hand (Upgrades in docs/PROCESS.md).
+  - package-ecosystem: docker
+    directory: /app
+    schedule:
+      interval: weekly
+    labels: [dependencies, "type: upgrade"]
+    commit-message:
+      prefix: Upgrade
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [dependencies, "type: upgrade"]
+    commit-message:
+      prefix: Upgrade

@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 // Security headers and the CSP arrive with sign-in (#44), and `output: "standalone"` with the
-// Dockerfile (#4, part 3).
+// Dockerfile's runner stage (#4, part 4).
 const nextConfig: NextConfig = {
   // `next dev` otherwise writes an AGENTS.md here when it detects a coding agent. The
   // repository's guidance for agents is CLAUDE.md, at the root.

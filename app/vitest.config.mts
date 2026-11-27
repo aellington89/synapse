@@ -26,12 +26,15 @@ export default defineConfig({
         },
       },
       {
-        // Empty until #4's part 3 adds Postgres and the tests that need it.
+        // Against synapse_test, migrated by `npm run db:migrate:test` (CI runs migrate.sh). The
+        // global setup loads app/.env.local and refuses any other database. One file at a time,
+        // because they share the database and migrate.test.ts reruns migrate.sh.
         extends: true,
         test: {
           name: "integration",
           include: ["tests/integration/**/*.test.ts"],
           environment: "node",
+          globalSetup: ["tests/integration/setup.ts"],
           fileParallelism: false,
         },
       },
