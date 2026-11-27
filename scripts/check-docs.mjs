@@ -18,7 +18,16 @@ import { createDocsLint, managedFiles } from './docs-lint.mjs'
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 // The shared process lives in a clone on a developer's machine, and node_modules is installed
 // only where `npm ci` ran, so a mention of either is checked only where it exists (not in CI).
+// So is a file git ignores, such as app/.env.local, which each developer makes from its .example.
 const devProcess = join(homedir(), '.claude', 'dev_process') + '/'
+const ignoredByGit = (path) => {
+  try {
+    execFileSync('git', ['check-ignore', '--quiet', '--', path], { cwd: ROOT, stdio: 'ignore' })
+    return true
+  } catch {
+    return false
+  }
+}
 const lint = createDocsLint({
   root: ROOT,
   pathRoots: ['app', 'docs', 'scripts', '.github'],
@@ -33,7 +42,8 @@ const lint = createDocsLint({
     'Phase 2: Ingestion',
   ],
   skipPath: (path) =>
-    path.startsWith('app/node_modules/') && !existsSync(join(ROOT, 'app/node_modules')),
+    (path.startsWith('app/node_modules/') && !existsSync(join(ROOT, 'app/node_modules'))) ||
+    (!existsSync(join(ROOT, path)) && ignoredByGit(path)),
   aliases: existsSync(devProcess) ? [['~/.claude/dev_process/', devProcess]] : [],
 })
 
