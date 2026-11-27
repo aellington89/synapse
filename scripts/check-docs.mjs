@@ -6,17 +6,23 @@
 //
 //   node scripts/check-docs.mjs
 
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createDocsLint, isRecordOrPlan, managedFiles } from './docs-lint.mjs'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
+// The shared process lives in a clone on a developer's machine, and node_modules is installed
+// only where `npm ci` ran, so a mention of either is checked only where it exists (not in CI).
+const devProcess = `${process.env.HOME}/.claude/dev_process/`
 const lint = createDocsLint({
   root: ROOT,
   pathRoots: ['app', 'docs', 'scripts', '.github'],
   properNouns: ['Synapse', 'PostgreSQL'],
   // Phase names, as the milestones and design titles spell them (CLAUDE.md, Roadmap).
   namedTerms: ["Synapse's", 'Next.js', 'Sigma.js', 'Base UI', 'Phase 1: Core graph', 'Phase 2: Ingestion'],
-  aliases: [['~/.claude/dev_process/', `${process.env.HOME}/.claude/dev_process/`]],
+  skipPath: (path) => path.startsWith('app/node_modules/') && !existsSync(join(ROOT, 'app/node_modules')),
+  aliases: existsSync(devProcess) ? [['~/.claude/dev_process/', devProcess]] : [],
 })
 
 const skip = managedFiles(ROOT)
