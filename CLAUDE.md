@@ -7,8 +7,9 @@ Guidance for Claude Code when working in this repository.
 Synapse is a self-hosted, single-user web app for the films, series, games, books, and albums
 you've lived with, connected as a graph (`docs/design/phase-1-core-graph.md`). It follows the
 finance-stack pattern (ADR 0001): Next.js 16 (App Router, TypeScript, Tailwind 4) with React 19,
-and shadcn components on Base UI (ADR 0003). PostgreSQL, Drizzle, and Docker Compose arrive with
-#4's part 3, and sign-in with #44.
+and shadcn components on Base UI (ADR 0003), on PostgreSQL 18 through Drizzle. Docker Compose
+(`docker-compose.yml`) runs Postgres and the `migrate` job; the app's container arrives with #4's
+part 4, and sign-in with #44.
 
 Layout of `app/`, the only Node package (run npm commands there, or with `npm --prefix app`):
 
@@ -18,11 +19,16 @@ Layout of `app/`, the only Node package (run npm commands there, or with `npm --
   package, import it from `@/lib/utils` instead. That's finance-stack's helper on `clsx` and
   `tailwind-merge`, the packages #4's spec lists, so components carry over (ADR 0003).
 - `lib/`: shared code (`lib/utils.ts` has `cn`).
+- `drizzle/`: `schema.ts`, and the migrations `npm run db:generate` writes from it into
+  `drizzle/migrations/`. Migrations are forward-only.
 - `scripts/`: the app's scripts, run with `tsx`. `check-audit.ts` is the audit gate, and
-  `audit-allowlist.ts` is what it decides, against `.audit-allowlist`.
-- `tests/unit/`: Vitest, `*.test.ts` in node and `*.test.tsx` in jsdom; `tests/integration/`
-  (Postgres) starts with #4's part 3. `e2e/`: Playwright, against the production build on
-  `E2E_PORT` (default 3102).
+  `audit-allowlist.ts` is what it decides, against `.audit-allowlist`. `migrate.sh` (with its SQL
+  in `app/scripts/sql/`) is the only way to migrate: it creates the databases and the `synapse_app`
+  role, applies the migrations, then the grants. The `migrate` service runs it on every `up`.
+- `tests/unit/`: Vitest, `*.test.ts` in node and `*.test.tsx` in jsdom. `tests/integration/`:
+  against `synapse_test` (Postgres). `tests/support/`: the guards that keep the tests off the real
+  `synapse` database. `e2e/`: Playwright, against the production build on `E2E_PORT` (default
+  3102).
 
 Outside `app/`, `scripts/check-docs.mjs` is the docs check (links, repo paths, sentence-case
 headings, American spelling), on `scripts/docs-lint.mjs`: a copy of dev_process's
@@ -35,12 +41,20 @@ Conventions:
 - Node 26, in CI and (from part 3) the images. TypeScript is held on `~6.0` and ESLint on `^9`,
   for the reasons in `app/package.json`'s `//typescript` and `//eslint` notes.
 - Ports: 3002 for `npm run dev`, `npm start`, and the app container; 3102 for the end-to-end
-  suite.
+  suite; 5434 for Postgres, on loopback.
+- Local development and the tests use `synapse_test`, through `app/.env.local` (from
+  `app/.env.local.example`), never `synapse`.
 
 ## Commands
 
 - **Verify:** `node scripts/dev-process/check-process.mjs && node scripts/check-docs.mjs &&
-  npm --prefix app run verify` (the docs check, Prettier, ESLint, `tsc`, and Vitest).
+  npm --prefix app run verify` (the docs check, Prettier, ESLint, `tsc`, and Vitest). Vitest's
+  integration project needs Postgres up and migrated, and `app/.env.local`.
+- **Postgres:** `docker compose up -d --build postgres migrate`, from the repository root, with
+  `.env` from `.env.example`.
+- **Migrate `synapse_test`:** `npm --prefix app run db:migrate:test`, after a change to
+  `app/drizzle/`. It refuses unless `app/.env.local` names `synapse_test` and its
+  `SYNAPSE_APP_DB_PASSWORD` matches the running stack's.
 - **Format:** `npm --prefix app run format`.
 - **Unit and component tests:** `npm --prefix app run test:unit`.
 - **End-to-end tests:** `npm --prefix app run test:e2e` (builds first; the first run needs
@@ -59,16 +73,16 @@ This project follows the shared development process in `~/.claude/dev_process` (
 additions, and where it differs from the shared process, are in `docs/PROCESS.md`. The skills
 read these facts:
 
-| Fact              | Value                                                                                                      |
-| ----------------- | ---------------------------------------------------------------------------------------------------------- |
-| Default branch    | `main`                                                                                                     |
-| Verify            | `node scripts/dev-process/check-process.mjs && node scripts/check-docs.mjs && npm --prefix app run verify` |
-| Unit tests        | `npm --prefix app run test:unit`                                                                           |
-| End-to-end tests  | `npm --prefix app run test:e2e`                                                                            |
-| Run the app       | n/a: until #4's part 3 adds Compose (`npm --prefix app run dev` serves the shell)                          |
-| Format            | `npm --prefix app run format`                                                                              |
-| Next version      | `node scripts/dev-process/release.mjs next`                                                                |
-| Prepare a release | `node scripts/dev-process/release.mjs prepare`, then n/a: no version bump until 1.18 (#21)                 |
-| User guide        | n/a: no user guide yet                                                                                     |
-| Roadmap           | Milestones `Phase <N>: <theme>` on GitHub, each planned in `docs/design/phase-<N>-<slug>.md`               |
-| GitHub project    | https://github.com/users/aellington89/projects/31                                                          |
+| Fact              | Value                                                                                                                                          |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Default branch    | `main`                                                                                                                                         |
+| Verify            | `node scripts/dev-process/check-process.mjs && node scripts/check-docs.mjs && npm --prefix app run verify`                                     |
+| Unit tests        | `npm --prefix app run test:unit`                                                                                                               |
+| End-to-end tests  | `npm --prefix app run test:e2e`                                                                                                                |
+| Run the app       | n/a: until #4's part 4 adds the app container (Postgres: `docker compose up -d --build postgres migrate`; the app: `npm --prefix app run dev`) |
+| Format            | `npm --prefix app run format`                                                                                                                  |
+| Next version      | `node scripts/dev-process/release.mjs next`                                                                                                    |
+| Prepare a release | `node scripts/dev-process/release.mjs prepare`, then n/a: no version bump until 1.18 (#21)                                                     |
+| User guide        | n/a: no user guide yet                                                                                                                         |
+| Roadmap           | Milestones `Phase <N>: <theme>` on GitHub, each planned in `docs/design/phase-<N>-<slug>.md`                                                   |
+| GitHub project    | https://github.com/users/aellington89/projects/31                                                                                              |

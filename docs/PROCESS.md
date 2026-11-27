@@ -25,9 +25,13 @@ None yet.
 
 Every level below runs in the CI `Verify` job, on Node 26, each check as its own step with no
 `continue-on-error`: `check-process.mjs`, `check-docs.mjs`, then in `app/` `npm ci`,
-`format:check`, `lint`, `typecheck`, `check:audit`, `npm test` (every Vitest project), the
-Playwright browser install, and `test:e2e`. Locally, the Verify fact runs the static checks and
-Vitest, and the End-to-end tests fact runs Playwright. The audit needs the npm registry, so it
+`format:check`, `lint`, `typecheck`, `check:audit`, `migrate.sh` (both databases, on a
+`postgres:18.6` service container), `npm test` (every Vitest project), the Playwright browser
+install, and `test:e2e`. Locally, the Verify fact runs the static checks and Vitest, and the
+End-to-end tests fact runs Playwright. Vitest's integration project needs the stack's Postgres up
+and migrated (`docker compose up -d --build postgres migrate`) and `app/.env.local`, from
+`app/.env.local.example`. Its global setup refuses to run unless `DATABASE_URL` and `PGDATABASE`
+both name `synapse_test`, so no test touches the real `synapse` database. The audit needs the npm registry, so it
 isn't in the Verify fact: `npm --prefix app run check:audit` runs it. `check-docs.mjs` checks
 mentions of `~/.claude/dev_process/` and `app/node_modules/` only where they exist, so CI (which
 has no dev_process clone and runs it before `npm ci`) skips them and a local run covers them.
@@ -37,7 +41,7 @@ has no dev_process clone and runs it before `npm ci`) skips them and a local run
 | Static             | `check-process.mjs`, `check-docs.mjs`, then in `app/`: Prettier (`format:check`), ESLint (`lint`), `tsc` (`typecheck`) | Locally, and the CI `Verify` job |
 | Dependency audit   | `npm audit --omit=dev` (`check:audit`), against `app/.audit-allowlist` (Upgrades)                                      | Locally, and the CI `Verify` job |
 | Unit and component | Vitest: the `unit` project (`tests/unit/**/*.test.ts`, node) and `jsdom` (`tests/unit/**/*.test.tsx`)                  | Locally, and the CI `Verify` job |
-| Integration        | Vitest's `integration` project (`tests/integration/**/*.test.ts`), empty until #4's part 3 adds Postgres               | Locally, and the CI `Verify` job |
+| Integration        | Vitest's `integration` project (`tests/integration/**/*.test.ts`), against `synapse_test`, one file at a time          | Locally, and the CI `Verify` job |
 | End to end         | Playwright (`e2e/`), Chromium, against `next build && next start` on `E2E_PORT` (default 3102)                         | Locally, and the CI `Verify` job |
 | Release QA         | n/a: nothing is released yet                                                                                           | Before publishing                |
 
@@ -49,7 +53,7 @@ and release QA here.
 
 ## Upgrades
 
-Dependabot (`.github/dependabot.yml`) tracks two ecosystems:
+Dependabot (`.github/dependabot.yml`) tracks four ecosystems:
 
 - **GitHub Actions**, monthly, in one group. Their updates merge automatically once CI passes.
 - **npm** (`app/`), weekly. Minor and patch updates arrive as two groups, dev and runtime
@@ -60,6 +64,11 @@ Dependabot (`.github/dependabot.yml`) tracks two ecosystems:
   and `@types/node` majors are ignored. The first two are held for the reasons in the
   `//typescript` and `//eslint` notes in `app/package.json`. `@types/node` moves with the Node
   major in CI and the images, by hand, in the same change.
+- **Docker**, weekly: the `node` base image in `app/Dockerfile` (`docker`, `/app`) and the
+  `postgres` image in `docker-compose.yml` (`docker-compose`, `/`). They wait for review, like
+  npm. Dependabot doesn't read the workflow's service containers, so a `postgres` bump changes
+  the Postgres service in `.github/workflows/ci.yml` to the same tag, in the same PR. A Node major
+  changes the images, CI's `node-version`, and `@types/node` together, by hand.
 
 The `Dependency audit (runtime)` step in `Verify` (`npm run check:audit`) fails on any HIGH or
 CRITICAL advisory in the runtime tree, `npm audit --omit=dev`. That leaves out dev dependencies,
@@ -80,7 +89,7 @@ bring in. Fix an advisory in this order:
 | ----------------------------- | -------------------------------------------------------------------------- | -------------------------- |
 | CI: `Verify`                  | Every pull request, and every push to `main` (its steps are under Testing) | `.github/workflows/ci.yml` |
 | CI: `Merge Dependabot update` | A Dependabot PR for GitHub Actions, after Verify                           | `.github/workflows/ci.yml` |
-| Dependabot                    | Monthly for GitHub Actions, weekly for npm (`app/`)                        | `.github/dependabot.yml`   |
+| Dependabot                    | Monthly for GitHub Actions, weekly for npm (`app/`) and Docker             | `.github/dependabot.yml`   |
 | Shared workflows (synced)     | See `.dev-process.json`                                                    | `.github/workflows/`       |
 
 ## Repository setup
@@ -104,8 +113,4 @@ None yet.
 
 ## Known gaps
 
-- Postgres, the integration tests, and a way to run the whole app (Compose) arrive with #4's
-  part 3.
-- Dependabot has no `docker` or `docker-compose` entry yet. When #4's part 3 adds the app's
-  Dockerfile and the Compose file, add a `docker` entry for `/app` and a `docker-compose` entry
-  for `/`.
+- The app's container, and so a way to run the whole app with Compose, arrives with #4's part 4.
