@@ -25,6 +25,7 @@ jobs:
           cache: npm
           cache-dependency-path: app/package-lock.json
       - run: node scripts/dev-process/check-process.mjs
+      - run: node scripts/check-docs.mjs
       # Each check is its own step, with no continue-on-error, so the failing one names itself
       # (docs/PROCESS.md, Testing).
       - name: Install
