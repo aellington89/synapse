@@ -127,7 +127,7 @@
   }
 }
 
-/* Synapse has no animation of its own (#4). Honour reduced motion for what the components bring,
+/* Synapse has no animation of its own (#4). Honor reduced motion for what the components bring,
    such as shadcn's transitions and sonner's toasts. */
 @media (prefers-reduced-motion: reduce) {
   *,

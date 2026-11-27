@@ -1,4 +1,4 @@
-# 0002. Store the graph as typed node and edge tables in PostgreSQL, and render and analyse it with graphology and Sigma.js
+# 0002. Store the graph as typed node and edge tables in PostgreSQL, and render and analyze it with graphology and Sigma.js
 
 Date: 2026-11-22 · Status: Accepted · Issue: #2
 
