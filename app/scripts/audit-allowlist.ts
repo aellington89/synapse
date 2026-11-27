@@ -11,7 +11,8 @@
 // - An entry is an advisory, not a package. npm also flags each package that only depends on a
 //   vulnerable one, naming that dependency in `via` as a string. Those aren't advisories of
 //   their own, so one entry covers its advisory wherever npm reports it.
-// - An entry stops working on its expiry date: `exp:2026-12-01` allows through 2026-11-30.
+// - An entry stops working on its expiry date, in UTC: `exp:2026-12-01` allows through
+//   2026-11-30 UTC.
 // - An entry that matches no HIGH or CRITICAL advisory is stale: a warning, never a failure.
 // - Whatever it can't read fails the gate: a report in a shape it doesn't know, an advisory with
 //   no id or an unknown severity, or an allowlist line that isn't an entry. An audit it couldn't

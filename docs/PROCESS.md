@@ -71,8 +71,8 @@ bring in. Fix an advisory in this order:
 2. When no upgrade reaches one, add an `overrides` entry in `app/package.json` that lifts the
    package to a fixed version, with why and when to drop it in an `//overrides` note.
 3. Only when no fixed version can be reached, add a dated entry to `app/.audit-allowlist`, whose
-   header says how to write one. The entry stops working on its expiry date, and the gate warns
-   about entries that no longer match an advisory.
+   header says how to write one. The entry stops working on its expiry date, in UTC, and the gate
+   warns about entries that no longer match an advisory.
 
 ## Automation
 

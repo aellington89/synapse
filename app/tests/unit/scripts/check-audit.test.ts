@@ -409,50 +409,78 @@ describe("check-audit.ts", () => {
     },
   });
 
+  // tsx's CLI, from its package.json, run by this test's `node` rather than through a shim on PATH,
+  // so a test can set PATH to anything, down to no `npm` at all.
+  const tsx = join(APP, "node_modules/tsx");
+  const TSX = join(tsx, JSON.parse(readFileSync(join(tsx, "package.json"), "utf8")).bin);
+
   let dir: string;
   beforeAll(() => {
     dir = mkdtempSync(join(tmpdir(), "check-audit-test-"));
     writeFileSync(
       join(dir, "npm"),
-      '#!/bin/sh\nprintf "%s\\n" "$@" > "$FAKE_NPM_ARGS"\ncat "$FAKE_NPM_REPORT"\nexit "$FAKE_NPM_STATUS"\n',
+      [
+        "#!/bin/sh",
+        'printf "%s\\n" "$@" > "$FAKE_NPM_ARGS"',
+        'cat "$FAKE_NPM_REPORT"',
+        // Stopped by a signal after printing the whole report, when the test asks for it.
+        'if [ -n "$FAKE_NPM_SIGNAL" ]; then kill -s "$FAKE_NPM_SIGNAL" $$; fi',
+        'exit "$FAKE_NPM_STATUS"',
+        "",
+      ].join("\n"),
     );
     chmodSync(join(dir, "npm"), 0o755);
   });
   afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
-  const run = (
-    report: string,
-    npmStatus: number,
-    path = `${dir}${delimiter}${process.env.PATH}`,
-    app = APP,
-  ) => {
+  interface RunOptions {
+    /** npm's exit status. */
+    status?: number;
+    /** A signal that stops npm after it has printed the report. */
+    signal?: string;
+    path?: string;
+    /** The app/ to run the script from. */
+    app?: string;
+  }
+
+  const run = (report: string, options: RunOptions = {}) => {
+    const { status = 0, signal = "", path = `${dir}${delimiter}${process.env.PATH}` } = options;
+    const app = options.app ?? APP;
     const reportFile = join(dir, "report.json");
     const argsFile = join(dir, "args");
     writeFileSync(reportFile, report);
     rmSync(argsFile, { force: true });
 
-    const result = spawnSync(
-      process.execPath,
-      [join(APP, "node_modules/tsx/dist/cli.mjs"), join(app, "scripts/check-audit.ts")],
-      {
-        cwd: app,
-        encoding: "utf8",
-        env: {
-          ...process.env,
-          PATH: path,
-          FAKE_NPM_ARGS: argsFile,
-          FAKE_NPM_REPORT: reportFile,
-          FAKE_NPM_STATUS: String(npmStatus),
-        },
+    const result = spawnSync(process.execPath, [TSX, join(app, "scripts/check-audit.ts")], {
+      cwd: app,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        PATH: path,
+        FAKE_NPM_ARGS: argsFile,
+        FAKE_NPM_REPORT: reportFile,
+        FAKE_NPM_STATUS: String(status),
+        FAKE_NPM_SIGNAL: signal,
       },
-    );
+    });
     const args = existsSync(argsFile) ? readFileSync(argsFile, "utf8").trim().split("\n") : [];
-    return { status: result.status, stdout: result.stdout, args };
+    return { status: result.status, stdout: result.stdout, stderr: result.stderr, args };
+  };
+
+  /** A copy of the two scripts in an app/ of its own, set up by `prepare`. */
+  const appCopy = (name: string, prepare: (app: string) => void = () => {}) => {
+    const app = join(dir, name);
+    mkdirSync(join(app, "scripts"), { recursive: true });
+    for (const script of ["check-audit.ts", "audit-allowlist.ts"]) {
+      copyFileSync(join(APP, "scripts", script), join(app, "scripts", script));
+    }
+    prepare(app);
+    return app;
   };
 
   it("exits 1 with an error annotation for each advisory with no entry", () => {
     // npm exits 1 whenever it finds an advisory, with the report on stdout.
-    const { status, stdout } = run(UNLISTED, 1);
+    const { status, stdout } = run(UNLISTED, { status: 1 });
 
     expect(status).toBe(1);
     expect(stdout).toMatch(/^::error::CRITICAL GHSA-0000-0000-0001 in example: An example/m);
@@ -460,18 +488,26 @@ describe("check-audit.ts", () => {
   });
 
   it("exits 0 on a clean report", () => {
-    const { status, stdout } = run(CLEAN, 0);
+    const { status, stdout } = run(CLEAN);
 
     expect(status).toBe(0);
     expect(stdout).toContain("✓ Dependency audit (runtime)");
   });
 
   it("audits the runtime tree with npm's config pinned and a cache of its own", () => {
-    const { args } = run(CLEAN, 0);
+    const { args } = run(CLEAN);
 
     expect(args.slice(0, 2)).toEqual(["audit", "--omit=dev"]);
     expect(args).toEqual(
-      expect.arrayContaining(["--include=optional", "--include=peer", "--offline=false", "--json"]),
+      expect.arrayContaining([
+        "--include=optional",
+        "--include=peer",
+        "--offline=false",
+        "--registry=https://registry.npmjs.org/",
+        "--json",
+        "--no-update-notifier",
+        `--logs-dir=${tmpdir()}`,
+      ]),
     );
 
     // A fresh cache for each run, removed afterwards.
@@ -481,31 +517,44 @@ describe("check-audit.ts", () => {
   });
 
   it("escapes what it prints in annotations", () => {
-    const { stdout } = run(JSON.stringify({ message: "100% down\nretry" }), 1);
+    const { stdout } = run(JSON.stringify({ message: "100% down\nretry" }), { status: 1 });
 
     expect(stdout).toContain("100%25 down%0Aretry");
   });
 
   it("says why when npm can't start", () => {
     // No npm anywhere on PATH.
-    const { status, stdout } = run(CLEAN, 0, join(dir, "nothing-here"));
+    const { status, stdout } = run(CLEAN, { path: join(dir, "nothing-here") });
 
     expect(status).toBe(1);
     expect(stdout).toMatch(/^::error::npm audit didn't finish: .*ENOENT/m);
   });
 
-  it("fails with an annotation naming the allowlist when it's missing, without running npm", () => {
-    // The two scripts, copied to an app/ with no .audit-allowlist beside them.
-    const app = join(dir, "no-allowlist");
-    mkdirSync(join(app, "scripts"), { recursive: true });
-    for (const script of ["check-audit.ts", "audit-allowlist.ts"]) {
-      copyFileSync(join(APP, "scripts", script), join(app, "scripts", script));
-    }
+  it("fails when npm is stopped, even after printing a whole report", () => {
+    const { status, stdout } = run(CLEAN, { signal: "TERM" });
 
-    const { status, stdout, args } = run(CLEAN, 0, undefined, app);
+    expect(status).toBe(1);
+    expect(stdout).toMatch(/^::error::npm audit didn't finish: .*\(SIGTERM\)/m);
+    expect(stdout).not.toContain("✓");
+  });
+
+  it("fails with an annotation naming the allowlist when it's missing, without running npm", () => {
+    const { status, stdout, args } = run(CLEAN, { app: appCopy("no-allowlist") });
 
     expect(status).toBe(1);
     expect(stdout).toMatch(/^::error::app\/\.audit-allowlist is missing/m);
+    expect(args).toEqual([]);
+  });
+
+  it("fails with an annotation when the allowlist can't be read, without a stack trace", () => {
+    // A directory where the file should be.
+    const app = appCopy("unreadable-allowlist", (app) => mkdirSync(join(app, ".audit-allowlist")));
+
+    const { status, stdout, stderr, args } = run(CLEAN, { app });
+
+    expect(status).toBe(1);
+    expect(stdout).toMatch(/^::error::app\/\.audit-allowlist can't be read: EISDIR/m);
+    expect(stderr).not.toMatch(/^\s+at /m);
     expect(args).toEqual([]);
   });
 });
