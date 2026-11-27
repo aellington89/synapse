@@ -25,7 +25,3 @@
 # - npm's numeric advisory id works in place of the GHSA id, but prefer the GHSA id.
 #
 # Add an entry only for a real finding, never ahead of one.
-
-GHSA-2v37-7h3g-55p8 exp:2026-12-11
-# AC8 evidence only (#4): this commit also forces nanoid 3.3.16. Both are reverted in the
-# next commit.
