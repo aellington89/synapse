@@ -3,7 +3,8 @@
 // headings are sentence case, and spellings are American. The checks are dev_process's
 // (scripts/docs-lint.mjs is a copy of its lib/docs-lint.mjs; see
 // ~/.claude/dev_process/standards/documentation.md#automated-checks). Run it from the
-// repository root:
+// repository root. It checks the Markdown files git tracks, so stage a new doc (`git add`) for it
+// to be checked:
 //
 //   node scripts/check-docs.mjs
 
@@ -41,9 +42,14 @@ const lint = createDocsLint({
 const skip = managedFiles(ROOT)
 let tracked
 try {
-  tracked = execFileSync('git', ['ls-files', '-z', '--', '*.md'], { cwd: ROOT, encoding: 'utf8' })
-} catch {
-  console.error('check-docs: needs a git checkout, with git installed, to list the tracked docs')
+  tracked = execFileSync('git', ['ls-files', '-z', '--', '*.md'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+} catch (error) {
+  console.error('check-docs: could not list the tracked docs with git (needs a git checkout):')
+  console.error(String(error.stderr || error.message).trim())
   process.exit(1)
 }
 const markdown = tracked

@@ -37,8 +37,8 @@ Conventions:
 
 ## Commands
 
-- **Verify:** `node scripts/dev-process/check-process.mjs && node scripts/check-docs.mjs && npm --prefix app run verify`
-  (the docs check, Prettier, ESLint, `tsc`, and Vitest).
+- **Verify:** `node scripts/dev-process/check-process.mjs && node scripts/check-docs.mjs &&
+  npm --prefix app run verify` (the docs check, Prettier, ESLint, `tsc`, and Vitest).
 - **Format:** `npm --prefix app run format`.
 - **Unit and component tests:** `npm --prefix app run test:unit`.
 - **End-to-end tests:** `npm --prefix app run test:e2e` (builds first; the first run needs
