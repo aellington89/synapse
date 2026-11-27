@@ -1,0 +1,14 @@
+# Secrets: only in these files and CI's environment, never in the repository.
+.env
+.env*.local
+
+# Dependencies and build output.
+node_modules/
+.next/
+next-env.d.ts
+*.tsbuildinfo
+
+# Test output.
+coverage/
+playwright-report/
+test-results/
