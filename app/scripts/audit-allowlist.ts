@@ -3,8 +3,8 @@
 // every decision from recorded reports.
 //
 // After finance-stack's app/scripts/audit-allowlist-core.ts, with one gate instead of two:
-// Synapse audits only the runtime tree, the dependencies that ship in the app, so an entry has
-// no `runtime` marker. The rules:
+// Synapse audits only the `npm audit --omit=dev` tree (docs/PROCESS.md, Upgrades, says what that
+// covers), so an entry has no `runtime` marker. The rules:
 //
 // - A HIGH or CRITICAL advisory fails the gate, as `npm audit --audit-level=high` would, unless
 //   app/.audit-allowlist has an entry for it.
@@ -39,10 +39,12 @@ interface Entry {
 interface Advisory {
   /** The GHSA id from the advisory's url, or npm's id when it has none. */
   id: string;
-  /** npm's ids for it. npm lists one advisory once per affected range, each with its own id. */
+  /** npm's ids for it: npm lists one advisory once per package and affected range. */
   npmIds: string[];
+  /** The highest severity npm gives it, as npm itself reports it. */
   severity: string;
-  packageName: string;
+  /** The packages it's filed against. */
+  packages: string[];
   title: string;
   url: string;
 }
@@ -135,8 +137,12 @@ function readReport(auditOutput: string): { advisories: Advisory[] } | { unreada
 
   const { vulnerabilities } = report;
   if (!isRecord(vulnerabilities)) {
-    // When the audit itself fails, as with no registry, npm prints an error in place of a report.
-    const said = typeof report.message === "string" ? ` (npm said: ${report.message})` : "";
+    // When the audit itself fails, npm prints an error in place of a report: `message` when the
+    // registry fails (as with no network), `error.summary` when npm does (as with no lockfile).
+    const { message, error } = report;
+    const summary = isRecord(error) ? error.summary : undefined;
+    const npmSaid = [message, summary].find((text) => typeof text === "string" && text !== "");
+    const said = npmSaid === undefined ? "" : ` (npm said: ${String(npmSaid)})`;
     return { unreadable: `it has no \`vulnerabilities\` object${said}` };
   }
 
@@ -166,16 +172,23 @@ function readReport(auditOutput: string): { advisories: Advisory[] } | { unreada
         };
       }
 
+      const packageName = typeof via.name === "string" ? via.name : name;
       const known = byId.get(id);
       if (known) {
         if (npmId !== undefined && !known.npmIds.includes(npmId)) known.npmIds.push(npmId);
+        if (!known.packages.includes(packageName)) known.packages.push(packageName);
+        // npm's advisory cache can keep an old severity for one npm id while the registry has
+        // re-scored the advisory, so take the highest, as npm itself does.
+        if (SEVERITIES.indexOf(via.severity) > SEVERITIES.indexOf(known.severity)) {
+          known.severity = via.severity;
+        }
         continue;
       }
       byId.set(id, {
         id,
         npmIds: npmId === undefined ? [] : [npmId],
         severity: via.severity,
-        packageName: typeof via.name === "string" ? via.name : name,
+        packages: [packageName],
         title: typeof via.title === "string" ? via.title : "(no title)",
         url,
       });
@@ -190,8 +203,8 @@ function readReport(auditOutput: string): { advisories: Advisory[] } | { unreada
   return { advisories: [...byId.values()] };
 }
 
-const describe = (advisory: Advisory) =>
-  `${advisory.severity.toUpperCase()} ${advisory.id} in ${advisory.packageName}: ${advisory.title}`;
+const describe = ({ severity, id, packages, title }: Advisory) =>
+  `${severity.toUpperCase()} ${id} in ${packages.join(", ")}: ${title}`;
 
 const at = (entry: Entry) => `${ALLOWLIST}:${entry.line}`;
 
@@ -206,7 +219,8 @@ export function runGate({ auditOutput, allowlist, today }: GateInput): GateRepor
   if ("unreadable" in read) {
     errors.push(
       `The audit report can't be read: ${read.unreadable}. The gate fails rather than pass a ` +
-        "tree it couldn't check. Run `npm audit --omit=dev --json` in app/ to see what npm printed.",
+        "tree it couldn't check. Run `npm audit --omit=dev --json` in app/ to see what npm " +
+        "printed.",
     );
   } else {
     const used = new Set<Entry>();

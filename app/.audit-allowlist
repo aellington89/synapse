@@ -1,8 +1,8 @@
 # Exceptions to the runtime dependency audit, one advisory per entry.
 #
 # `npm run check:audit`, the Dependency audit step in CI's Verify, fails on any HIGH or CRITICAL
-# advisory in the runtime tree (the dependencies that ship in the app) unless an entry here allows
-# it. app/scripts/audit-allowlist.ts reads this file.
+# advisory that `npm audit --omit=dev` reports (docs/PROCESS.md, Upgrades, says what that covers)
+# unless an entry here allows it. app/scripts/audit-allowlist.ts parses this file.
 #
 # An entry is the last resort, for an advisory that no fixed version can reach yet. First upgrade
 # the package, then try an `overrides` entry in app/package.json with its reason in the
