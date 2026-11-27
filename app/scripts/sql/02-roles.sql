@@ -6,7 +6,10 @@
 -- password from SYNAPSE_APP_DB_PASSWORD, so a new password takes effect on the next run, and a
 -- role changed by hand is put back. \getenv reads it from the environment rather than psql's
 -- command line, where `ps` would show it. format(%L) quotes it, and \gexec runs the result,
--- because psql doesn't expand :variables inside dollar quotes.
+-- because psql doesn't expand :variables inside dollar quotes. \getenv needs psql 15 or later.
+--
+-- ALTER ROLE ... PASSWORD sends the password to the server in plain text, so log_statement and
+-- log_min_error_statement must stay at their defaults on this cluster, or it lands in the log.
 --
 -- What the role may do in each database is in 03-grants.sql.
 

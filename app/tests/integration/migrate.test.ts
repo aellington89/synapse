@@ -89,6 +89,8 @@ describe("migrate.sh", { timeout: 120_000 }, () => {
     ["SYNAPSE_APP_DB_PASSWORD", "has space"],
     ["SYNAPSE_APP_DB_PASSWORD", ""],
     ["PGPASSWORD", "has/slash"],
+    ["PGHOST", "has/slash"],
+    ["SYNAPSE_DATABASES", ""],
   ])("stops, naming %s, when it's %j, before changing anything", async (variable, value) => {
     const before = await snapshot();
 

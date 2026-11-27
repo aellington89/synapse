@@ -29,10 +29,11 @@ Every level below runs in the CI `Verify` job, on Node 26, each check as its own
 `postgres:18.6` service container), `npm test` (every Vitest project), the Playwright browser
 install, and `test:e2e`. Locally, the Verify fact runs the static checks and Vitest, and the
 End-to-end tests fact runs Playwright. Vitest's integration project needs the stack's Postgres up
-and migrated (`docker compose up -d --build postgres migrate`) and `app/.env.local`, from
-`app/.env.local.example`. Its global setup refuses to run unless `DATABASE_URL` and `PGDATABASE`
-both name `synapse_test`, so no test touches the real `synapse` database. The audit needs the npm registry, so it
-isn't in the Verify fact: `npm --prefix app run check:audit` runs it. `check-docs.mjs` checks
+and migrated (`docker compose up -d --build postgres migrate`), `app/.env.local` from
+`app/.env.local.example`, and psql 15 or later on the host, since `migrate.test.ts` runs
+`migrate.sh` there. Its global setup refuses to run unless `DATABASE_URL` and `PGDATABASE` both
+name `synapse_test`, so no test touches the real `synapse` database. The audit needs the npm
+registry, so it isn't in the Verify fact: `npm --prefix app run check:audit` runs it. `check-docs.mjs` checks
 mentions of `~/.claude/dev_process/` and `app/node_modules/` only where they exist, so CI (which
 has no dev_process clone and runs it before `npm ci`) skips them and a local run covers them.
 

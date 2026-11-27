@@ -36,12 +36,16 @@ for var in PGHOST PGPORT PGUSER PGPASSWORD SYNAPSE_APP_DB_PASSWORD; do
 done
 
 # They go into connection URLs unescaped: drizzle-kit's DATABASE_URL below, and the app's.
-for var in PGUSER PGPASSWORD SYNAPSE_APP_DB_PASSWORD; do
+for var in PGHOST PGUSER PGPASSWORD SYNAPSE_APP_DB_PASSWORD; do
+  hint=""
+  [[ "${var}" == *PASSWORD ]] && hint=" Generate a password with: openssl rand -hex 24"
   [[ "${!var}" =~ ^[A-Za-z0-9._~-]+$ ]] ||
-    fail "${var} may hold only A-Z, a-z, 0-9, and . _ ~ - because it goes into a connection URL unescaped. Generate a password with: openssl rand -hex 24"
+    fail "${var} may hold only A-Z, a-z, 0-9, and . _ ~ - because it goes into a connection URL unescaped.${hint}"
 done
 
-read -r -a DATABASES <<<"${SYNAPSE_DATABASES:-synapse synapse_test}"
+# Unset means both; set but empty is refused below, so a wrapper that passes an empty value can't
+# fall back to the real synapse database.
+read -r -a DATABASES <<<"${SYNAPSE_DATABASES-synapse synapse_test}"
 [ "${#DATABASES[@]}" -gt 0 ] || fail "SYNAPSE_DATABASES names no database."
 for db in "${DATABASES[@]}"; do
   [[ "${db}" =~ ^[a-z_][a-z0-9_]*$ ]] ||

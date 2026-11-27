@@ -49,7 +49,8 @@ Conventions:
 
 - **Verify:** `node scripts/dev-process/check-process.mjs && node scripts/check-docs.mjs &&
   npm --prefix app run verify` (the docs check, Prettier, ESLint, `tsc`, and Vitest). Vitest's
-  integration project needs Postgres up and migrated, and `app/.env.local`.
+  integration project needs Postgres up and migrated, `app/.env.local`, and psql 15 or later on
+  the host (it runs `migrate.sh`, as `db:migrate:test` does).
 - **Postgres:** `docker compose up -d --build postgres migrate`, from the repository root, with
   `.env` from `.env.example`.
 - **Migrate `synapse_test`:** `npm --prefix app run db:migrate:test`, after a change to
