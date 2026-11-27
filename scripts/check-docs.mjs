@@ -48,7 +48,7 @@ try {
     stdio: ['ignore', 'pipe', 'pipe'],
   })
 } catch (error) {
-  console.error('check-docs: could not list the tracked docs with git (needs a git checkout):')
+  console.error('check-docs: could not list the tracked docs with git (needs git, in a checkout):')
   console.error(String(error.stderr || error.message).trim())
   process.exit(1)
 }
