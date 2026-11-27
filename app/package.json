@@ -10,6 +10,7 @@
     "format:check": "prettier --check .",
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
+    "check:audit": "tsx scripts/check-audit.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:unit": "vitest run --project unit --project jsdom",
@@ -61,6 +62,7 @@
     "prettier": "^3.10.1",
     "shadcn": "^4.23.1",
     "tailwindcss": "^4.3.5",
+    "tsx": "^4.23.15",
     "typescript": "~6.0",
     "vitest": "^5.1.2"
   }

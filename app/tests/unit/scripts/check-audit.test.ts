@@ -65,6 +65,9 @@ describe("the audit gate", () => {
     const [high] = errorsAbout(report, HIGH);
     expect(high).toContain("HIGH");
     expect(high).toContain("nanoid");
+
+    // The summary says how to fix one: upgrade, then override, then allow.
+    expect(report.summary).toContain("`overrides`");
   });
 
   it("counts an advisory once, however many npm ids and flagged packages it has", () => {
@@ -195,6 +198,8 @@ describe("the audit gate fails closed", () => {
 
     expect(report.ok).toBe(false);
     expect(report.errors.join("\n")).toContain("ECONNREFUSED");
+    // With no advisory to fix, it doesn't say how to fix one.
+    expect(report.summary).not.toContain("`overrides`");
   });
 
   it.each([
@@ -267,5 +272,17 @@ describe("the audit gate fails closed", () => {
     const [duplicate] = report.errors.filter((error) => error.includes("listed"));
     expect(duplicate).toContain(`app/.audit-allowlist:${entryLine(2)}`);
     expect(duplicate).toContain(`line ${entryLine(1)}`);
+  });
+
+  it("on an advisory listed under both its GHSA id and its npm id, naming both lines", () => {
+    const report = blocked(
+      ADVISORIES,
+      allowlist(`${CRITICAL} exp:2026-12-01`, `${HIGH} exp:2026-12-01`, "1139427 exp:2027-01-01"),
+    );
+
+    expect(report.ok).toBe(false);
+    const [twice] = errorsAbout(report, HIGH);
+    expect(twice).toContain(`app/.audit-allowlist:${entryLine(1)}`);
+    expect(twice).toContain(`app/.audit-allowlist:${entryLine(2)}`);
   });
 });
