@@ -1,0 +1,13 @@
+# The build context is app/. Nothing below is needed in an image.
+node_modules
+.next
+# Secrets: Next.js copies any .env* it finds into its build output, so none may reach the context.
+.env*
+# Tests and their output.
+e2e
+tests
+playwright.config.ts
+playwright-report
+test-results
+coverage
+*.md
