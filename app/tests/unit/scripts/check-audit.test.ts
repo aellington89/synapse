@@ -381,8 +381,25 @@ describe("the audit gate fails closed", () => {
 });
 
 // The script itself, run as `npm run check:audit` runs it, against a fake `npm` first on PATH that
-// records its arguments and prints a recorded report. It reads the committed allowlist.
+// records its arguments and prints a report. It reads the committed allowlist, so these tests use
+// advisories that no entry there can match, whatever the file holds.
 describe("check-audit.ts", () => {
+  const unlisted = (id: string, severity: string) => ({
+    source: 0,
+    name: "example",
+    title: "An example",
+    severity,
+    url: `https://github.com/advisories/${id}`,
+  });
+  const UNLISTED = JSON.stringify({
+    vulnerabilities: {
+      example: {
+        name: "example",
+        via: [unlisted("GHSA-0000-0000-0001", "critical"), unlisted("GHSA-0000-0000-0002", "high")],
+      },
+    },
+  });
+
   let dir: string;
   beforeAll(() => {
     dir = mkdtempSync(join(tmpdir(), "check-audit-test-"));
@@ -425,11 +442,11 @@ describe("check-audit.ts", () => {
 
   it("exits 1 with an error annotation for each advisory with no entry", () => {
     // npm exits 1 whenever it finds an advisory, with the report on stdout.
-    const { status, stdout } = run(ADVISORIES, 1);
+    const { status, stdout } = run(UNLISTED, 1);
 
     expect(status).toBe(1);
-    expect(stdout).toMatch(new RegExp(`^::error::CRITICAL ${CRITICAL} in minimist: `, "m"));
-    expect(stdout).toMatch(new RegExp(`^::error::HIGH ${HIGH} in nanoid: `, "m"));
+    expect(stdout).toMatch(/^::error::CRITICAL GHSA-0000-0000-0001 in example: An example/m);
+    expect(stdout).toMatch(/^::error::HIGH GHSA-0000-0000-0002 in example: An example/m);
   });
 
   it("exits 0 on a clean report", () => {
