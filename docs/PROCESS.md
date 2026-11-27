@@ -25,17 +25,17 @@ None yet.
 
 Every level below runs in the CI `Verify` job, on Node 26, each check as its own step with no
 `continue-on-error`: `check-process.mjs`, `check-docs.mjs`, then in `app/` `npm ci`,
-`format:check`, `lint`, `typecheck`, `npm test` (every Vitest project), the Playwright browser
-install, and `test:e2e`.
-Locally, the Verify fact runs the static checks and Vitest, and the End-to-end tests fact runs
-Playwright.
-`check-docs.mjs` checks mentions of `~/.claude/dev_process/` and `app/node_modules/` only where
-they exist, so CI (which has no dev_process clone and runs it before `npm ci`) skips them and a
-local run covers them.
+`format:check`, `lint`, `typecheck`, `check:audit`, `npm test` (every Vitest project), the
+Playwright browser install, and `test:e2e`. Locally, the Verify fact runs the static checks and
+Vitest, and the End-to-end tests fact runs Playwright. The audit needs the npm registry, so it
+isn't in the Verify fact: `npm --prefix app run check:audit` runs it. `check-docs.mjs` checks
+mentions of `~/.claude/dev_process/` and `app/node_modules/` only where they exist, so CI (which
+has no dev_process clone and runs it before `npm ci`) skips them and a local run covers them.
 
 | Level              | Tool                                                                                                                   | Where it runs                    |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
 | Static             | `check-process.mjs`, `check-docs.mjs`, then in `app/`: Prettier (`format:check`), ESLint (`lint`), `tsc` (`typecheck`) | Locally, and the CI `Verify` job |
+| Dependency audit   | `npm audit --omit=dev` (`check:audit`), against `app/.audit-allowlist` (Upgrades)                                      | Locally, and the CI `Verify` job |
 | Unit and component | Vitest: the `unit` project (`tests/unit/**/*.test.ts`, node) and `jsdom` (`tests/unit/**/*.test.tsx`)                  | Locally, and the CI `Verify` job |
 | Integration        | Vitest's `integration` project (`tests/integration/**/*.test.ts`), empty until #4's part 3 adds Postgres               | Locally, and the CI `Verify` job |
 | End to end         | Playwright (`e2e/`), Chromium, against `next build && next start` on `E2E_PORT` (default 3102)                         | Locally, and the CI `Verify` job |
@@ -49,9 +49,30 @@ and release QA here.
 
 ## Upgrades
 
-Only GitHub Actions are tracked so far (`.github/dependabot.yml`), monthly, and their updates
-merge automatically once CI passes. npm (`app/`) joins with #4's part 2, with the packages and
-groups that always wait for review listed here.
+Dependabot (`.github/dependabot.yml`) tracks two ecosystems:
+
+- **GitHub Actions**, monthly, in one group. Their updates merge automatically once CI passes.
+- **npm** (`app/`), weekly. Minor and patch updates arrive as two groups, dev and runtime
+  dependencies, and each major as a PR of its own. Dependabot counts a 0.x minor as a minor,
+  though the caret treats it as breaking, so a `next-themes` or `class-variance-authority`
+  release outside its range arrives in the runtime group. Every npm update waits for review: the
+  `Merge Dependabot update` job merges GitHub Actions updates only. The `typescript`, `eslint`,
+  and `@types/node` majors are ignored. The first two are held for the reasons in the
+  `//typescript` and `//eslint` notes in `app/package.json`. `@types/node` moves with the Node
+  major in CI and the images, by hand, in the same change.
+
+The `Dependency audit (runtime)` step in `Verify` (`npm run check:audit`) fails on any HIGH or
+CRITICAL advisory in the runtime tree, `npm audit --omit=dev`. That leaves out dev dependencies,
+except one that a runtime package also names as an optional peer: npm keeps those, so
+`@playwright/test` (an optional peer of `next`) and `@types/react` are audited, with what they
+bring in. Fix an advisory in this order:
+
+1. Upgrade the package, or the dependency that brings it in, to a fixed version.
+2. When no upgrade reaches one, add an `overrides` entry in `app/package.json` that lifts the
+   package to a fixed version, with why and when to drop it in an `//overrides` note.
+3. Only when no fixed version can be reached, add a dated entry to `app/.audit-allowlist`, whose
+   header says how to write one. The entry stops working on its expiry date, in UTC, and the gate
+   warns about entries that no longer match an advisory.
 
 ## Automation
 
@@ -59,7 +80,7 @@ groups that always wait for review listed here.
 | ----------------------------- | -------------------------------------------------------------------------- | -------------------------- |
 | CI: `Verify`                  | Every pull request, and every push to `main` (its steps are under Testing) | `.github/workflows/ci.yml` |
 | CI: `Merge Dependabot update` | A Dependabot PR for GitHub Actions, after Verify                           | `.github/workflows/ci.yml` |
-| Dependabot                    | Monthly, GitHub Actions                                                    | `.github/dependabot.yml`   |
+| Dependabot                    | Monthly for GitHub Actions, weekly for npm (`app/`)                        | `.github/dependabot.yml`   |
 | Shared workflows (synced)     | See `.dev-process.json`                                                    | `.github/workflows/`       |
 
 ## Repository setup
@@ -83,5 +104,8 @@ None yet.
 
 ## Known gaps
 
-- The dependency audit arrives with #4's part 2, and Postgres, the integration tests, and a way
-  to run the whole app (Compose) with its part 3.
+- Postgres, the integration tests, and a way to run the whole app (Compose) arrive with #4's
+  part 3.
+- Dependabot has no `docker` or `docker-compose` entry yet. When #4's part 3 adds the app's
+  Dockerfile and the Compose file, add a `docker` entry for `/app` and a `docker-compose` entry
+  for `/`.

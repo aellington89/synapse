@@ -18,6 +18,8 @@ Layout of `app/`, the only Node package (run npm commands there, or with `npm --
   package, import it from `@/lib/utils` instead. That's finance-stack's helper on `clsx` and
   `tailwind-merge`, the packages #4's spec lists, so components carry over (ADR 0003).
 - `lib/`: shared code (`lib/utils.ts` has `cn`).
+- `scripts/`: the app's scripts, run with `tsx`. `check-audit.ts` is the audit gate, and
+  `audit-allowlist.ts` is what it decides, against `.audit-allowlist`.
 - `tests/unit/`: Vitest, `*.test.ts` in node and `*.test.tsx` in jsdom; `tests/integration/`
   (Postgres) starts with #4's part 3. `e2e/`: Playwright, against the production build on
   `E2E_PORT` (default 3102).
@@ -43,6 +45,9 @@ Conventions:
 - **Unit and component tests:** `npm --prefix app run test:unit`.
 - **End-to-end tests:** `npm --prefix app run test:e2e` (builds first; the first run needs
   `npx playwright install chromium` in `app/`).
+- **Dependency audit:** `npm --prefix app run check:audit` (the runtime tree, against
+  `app/.audit-allowlist`; it needs the npm registry, so it's in CI's Verify but not the Verify
+  fact). Fix an advisory as `docs/PROCESS.md`'s Upgrades says.
 - **Dev server:** `npm --prefix app run dev`, on `http://localhost:3002`.
 
 ## Dev process

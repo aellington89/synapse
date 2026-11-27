@@ -1,0 +1,27 @@
+# Exceptions to the runtime dependency audit, one advisory per entry.
+#
+# `npm run check:audit`, the Dependency audit step in CI's Verify, fails on any HIGH or CRITICAL
+# advisory that `npm audit --omit=dev` reports (docs/PROCESS.md, Upgrades, says what that covers)
+# unless an entry here allows it. app/scripts/audit-allowlist.ts parses this file.
+#
+# An entry is the last resort, for an advisory that no fixed version can reach yet. First upgrade
+# the package, then try an `overrides` entry in app/package.json with its reason in the
+# `//overrides` note (docs/PROCESS.md, Upgrades). Check `npm view <package> versions` against the
+# advisory's affected range before deciding that there's no fix.
+#
+# Each entry is the advisory's GHSA id and an expiry date, with comments beneath it saying why it's
+# allowed and what would lift it:
+#
+#   GHSA-xxxx-xxxx-xxxx exp:YYYY-MM-DD
+#   # Why it's allowed, and what lifts it.
+#
+# - An entry is an advisory, not a package. npm also flags each package that only depends on a
+#   vulnerable one, and the entry covers those too. A new advisory against any of them still fails.
+# - An entry stops working on its expiry date, in UTC: exp:2026-12-01 allows its advisory through
+#   2026-11-30 UTC. Then take the fix, or set a new date and say in the comment what changed, so
+#   that an extension is a decision rather than a renewal.
+# - Nothing deletes an entry when its advisory is fixed. The gate warns about each entry that
+#   matches no HIGH or CRITICAL advisory, and then you delete it and its comment.
+# - npm's numeric advisory id works in place of the GHSA id, but prefer the GHSA id.
+#
+# Add an entry only for a real finding, never ahead of one.

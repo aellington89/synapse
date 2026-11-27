@@ -1,7 +1,8 @@
 name: CI
 
-# Verify (the verify command, then the end-to-end tests) on every pull request and every push to
-# main, then the merge of low-risk Dependabot updates (GitHub Actions) once it passes. The ruleset
+# Verify (the verify command's checks and the dependency audit, then the end-to-end tests) on every
+# pull request and every push to main, then the merge of low-risk Dependabot updates (GitHub
+# Actions) once it passes. npm updates wait for review (docs/PROCESS.md, Upgrades). The ruleset
 # requires the job names; keep them.
 
 on:
@@ -39,6 +40,9 @@ jobs:
       - name: Types (tsc)
         run: npm run typecheck
         working-directory: app
+      - name: Dependency audit (runtime)
+        run: npm run check:audit
+        working-directory: app
       - name: Unit and component tests (Vitest)
         run: npm test
         working-directory: app
@@ -69,6 +73,7 @@ jobs:
     steps:
       - id: metadata
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+      # GitHub Actions only: npm updates wait for the owner's review.
       - if: steps.metadata.outputs.package-ecosystem == 'github_actions'
         run: gh pr merge --auto --squash "$PR_URL"
         env:

@@ -1,6 +1,6 @@
-# GitHub Actions only, until Synapse's stack is chosen: add an entry per package ecosystem then
-# (docs/PROCESS.md, Upgrades). The Triage workflow assigns each PR to the owner and asks for
-# their review; CI merges these once Verify passes.
+# Dependabot (docs/PROCESS.md, Upgrades). The Triage workflow assigns each PR to the owner and asks
+# for their review. CI merges GitHub Actions updates once Verify passes; npm updates wait for that
+# review.
 version: 2
 updates:
   - package-ecosystem: github-actions
@@ -13,3 +13,45 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+
+  # The app, the repository's only Node package.
+  - package-ecosystem: npm
+    directory: /app
+    schedule:
+      interval: weekly
+    labels: [dependencies, "type: upgrade"]
+    commit-message:
+      prefix: Upgrade
+    # A routine week arrives as two PRs, dev and runtime, and each major as a PR of its own.
+    # Dependabot counts a 0.x minor as a minor, though the caret treats it as breaking, so a
+    # next-themes or class-variance-authority release outside its range arrives in the runtime
+    # group: read those first.
+    groups:
+      dev-dependencies:
+        dependency-type: development
+        update-types: [minor, patch]
+      production-dependencies:
+        dependency-type: production
+        update-types: [minor, patch]
+    # The typescript and eslint majors would only fail, and the @types/node major waits for the
+    # Node major, so all three are ignored rather than raised every week. Minor and patch updates
+    # still arrive.
+    ignore:
+      # TypeScript 7, the native port, is outside typescript-eslint's peer range, which ends below
+      # 6.1. The `//typescript` note in app/package.json is the other half. Lift this once
+      # typescript-eslint admits 7, and check that `next build` still type-checks with it: Next
+      # 16.4.6 runs the project's own `tsc`, under the still-experimental `useTypeScriptCli`. A 6.1
+      # arrives as a minor, moving `~6.0` to `~6.1`: check typescript-eslint's peer range before
+      # merging it.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      # ESLint 10 removed the rule-context accessors that the plugins eslint-config-next vendors
+      # still call (eslint-plugin-react 7.37.5 peers at ^9.7), so it crashes as it loads the
+      # rules. The `//eslint` note in app/package.json says when to lift it.
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      # @types/node's major moves with the Node major in CI and the images, by hand and in the
+      # same change. Ahead of the runtime, `tsc` admits APIs that don't exist; behind it, it
+      # rejects ones that do. This rule doesn't lift.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
