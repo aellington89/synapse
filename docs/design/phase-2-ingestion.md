@@ -209,7 +209,7 @@ roles have no DDL (Phase 1 §5).
   the extended history's IP address, username, user agent, or country. React renders every
   string as text.
 - **Staged files:** a staged file is deleted once its rows are all stored in `import_rows`, when
-  its run is cancelled or undone, or when its `parse_file` job fails for the last time. Retrying
+  its run is canceled or undone, or when its `parse_file` job fails for the last time. Retrying
   a later stage reads `import_rows`, not the file. Retrying a run that failed while parsing asks
   for the file again.
 
@@ -273,7 +273,7 @@ in Phase 1, except `import_rows.node_id`, which is set to null. Every `created_b
 | `jobs`                           | 2.1   | `id`, `kind text` (not a check constraint: the worker's registry in `app/lib/jobs/` knows each kind, and fails a job of an unknown kind, so adding a source needs no migration here), `recurring boolean` (default false), `payload jsonb`, `status` (`queued`, `running`, `done`, `failed`), `attempts`, `run_after`, `locked_at`, `locked_by`, `heartbeat_at null`, `last_error`, `created_at`. An index on `(status, run_after)`, and a unique partial index on `(kind) WHERE recurring AND status IN ('queued', 'running')` (§3.2). |
 | `provider_slots`                 | 2.1   | `provider` (primary key), `next_slot_at`. Seeded with one row per provider by the migration.                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `worker_heartbeats`              | 2.1   | `worker_id` (primary key), `beat_at`, `version`.                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
-| `import_runs`                    | 2.2   | `id`, `source` (check: `spotify_history`, `spotify_poll`, `steam`, `rym`; P2 adds `letterboxd`, `trakt`, `goodreads`, `lastfm`), `status` (`queued`, `parsing`, `matching`, `needs_review`, `completed`, `failed`, `cancelled`, `undone`), `file_name null`, `file_sha256 null`, `day date null` (a poll run's day, with a unique partial index on `(source, day) WHERE day IS NOT NULL`), `counts jsonb`, `gaps jsonb`, `error null`, `created_at`, `started_at`, `finished_at`. Indexes on `file_sha256` and `(source, created_at)`. The same migration adds `jobs.run_id → import_runs null`. |
+| `import_runs`                    | 2.2   | `id`, `source` (check: `spotify_history`, `spotify_poll`, `steam`, `rym`; P2 adds `letterboxd`, `trakt`, `goodreads`, `lastfm`), `status` (`queued`, `parsing`, `matching`, `needs_review`, `completed`, `failed`, `canceled`, `undone`), `file_name null`, `file_sha256 null`, `day date null` (a poll run's day, with a unique partial index on `(source, day) WHERE day IS NOT NULL`), `counts jsonb`, `gaps jsonb`, `error null`, `created_at`, `started_at`, `finished_at`. Indexes on `file_sha256` and `(source, created_at)`. The same migration adds `jobs.run_id → import_runs null`.  |
 | `import_rows`                    | 2.2   | `id`, `run_id → import_runs` (cascading), `ordinal`, `source_key text`, `raw jsonb null` (cleared, §4), `status` (`pending`, `matched`, `needs_review`, `applied`, `skipped`, `ignored`, `failed`, `duplicate`), `candidates jsonb`, `resolution jsonb null`, `node_id → nodes null` (set null on delete, the one exception to the cascade rule above), `error null`. An index on `(run_id, status)`. |
 | `created_by_run` columns         | 2.2   | Added to `nodes`, `edges` (the `created_by_run` from #2's research, Phase 1 §5), and `consumptions`.                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `consumptions` changes           | 2.2   | `source_ref text null`, with a unique partial index on `(source, source_ref) WHERE source_ref IS NOT NULL`. The `source` check grows with each source: `steam` (2.5), `rym` (2.8), and at P2 `letterboxd`, `trakt`, `goodreads`.                                                                                                                                                                                                                                                                             |
@@ -348,7 +348,7 @@ deadline weren't in it.
   name and a neutral icon. Synapse doesn't use other companies' logos, so no brand assets are
   needed.
 - Run statuses use one badge style with a word as well as a color: Queued, Parsing, Matching,
-  Needs review, Done, Failed, Cancelled, and Undone.
+  Needs review, Done, Failed, Canceled, and Undone.
 
 ### 7.2 Flows
 
@@ -394,13 +394,13 @@ stateDiagram-v2
   matching --> failed
   needs_review --> completed: all resolved
   failed --> queued: Retry
-  queued --> cancelled
-  parsing --> cancelled
-  matching --> cancelled
-  needs_review --> cancelled
+  queued --> canceled
+  parsing --> canceled
+  matching --> canceled
+  needs_review --> canceled
   completed --> undone
   failed --> undone
-  cancelled --> undone
+  canceled --> undone
 ```
 
 Every run applies the rows it matches, and its plays, as it goes (§3.2). `needs_review` holds
@@ -411,7 +411,7 @@ review. Sync runs (`spotify_poll`, `steam`) are created by the worker and skip `
 run's failed job. When a run that failed while parsing has no staged file left, Retry asks for
 the file again, and choosing it starts a new run. The failed run never reached matching, so it
 applied nothing and has nothing to undo; it links to the new run, which is the one that offers
-Undo (§3.2). A cancelled or failed run keeps whatever it already applied, and Undo removes
+Undo (§3.2). A canceled or failed run keeps whatever it already applied, and Undo removes
 it.
 
 ### 7.3 States
