@@ -24,18 +24,19 @@ None yet.
 ## Testing
 
 Every level below runs in the CI `Verify` job, on Node 26, each check as its own step with no
-`continue-on-error`: `check-process.mjs`, then in `app/` `npm ci`, `format:check`, `lint`,
-`typecheck`, `npm test` (every Vitest project), the Playwright browser install, and `test:e2e`.
+`continue-on-error`: `check-process.mjs`, `check-docs.mjs`, then in `app/` `npm ci`,
+`format:check`, `lint`, `typecheck`, `npm test` (every Vitest project), the Playwright browser
+install, and `test:e2e`.
 Locally, the Verify fact runs the static checks and Vitest, and the End-to-end tests fact runs
 Playwright.
 
-| Level              | Tool                                                                                                     | Where it runs                    |
-| ------------------ | -------------------------------------------------------------------------------------------------------- | -------------------------------- |
-| Static             | `check-process.mjs`, then in `app/`: Prettier (`format:check`), ESLint (`lint`), `tsc` (`typecheck`)     | Locally, and the CI `Verify` job |
-| Unit and component | Vitest: the `unit` project (`tests/unit/**/*.test.ts`, node) and `jsdom` (`tests/unit/**/*.test.tsx`)    | Locally, and the CI `Verify` job |
-| Integration        | Vitest's `integration` project (`tests/integration/**/*.test.ts`), empty until #4's part 3 adds Postgres | Locally, and the CI `Verify` job |
-| End to end         | Playwright (`e2e/`), Chromium, against `next build && next start` on `E2E_PORT` (default 3102)           | Locally, and the CI `Verify` job |
-| Release QA         | n/a: nothing is released yet                                                                             | Before publishing                |
+| Level              | Tool                                                                                                                   | Where it runs                    |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| Static             | `check-process.mjs`, `check-docs.mjs`, then in `app/`: Prettier (`format:check`), ESLint (`lint`), `tsc` (`typecheck`) | Locally, and the CI `Verify` job |
+| Unit and component | Vitest: the `unit` project (`tests/unit/**/*.test.ts`, node) and `jsdom` (`tests/unit/**/*.test.tsx`)                  | Locally, and the CI `Verify` job |
+| Integration        | Vitest's `integration` project (`tests/integration/**/*.test.ts`), empty until #4's part 3 adds Postgres               | Locally, and the CI `Verify` job |
+| End to end         | Playwright (`e2e/`), Chromium, against `next build && next start` on `E2E_PORT` (default 3102)                         | Locally, and the CI `Verify` job |
+| Release QA         | n/a: nothing is released yet                                                                                           | Before publishing                |
 
 ## Release
 
